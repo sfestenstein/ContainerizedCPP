@@ -1,0 +1,75 @@
+/**
+ * @file sensor_reading.proto
+ * @brief Protocol buffer definition for sensor reading messages
+ *
+ * This proto file defines the SensorReadingMsg publishable message
+ * and its associated helper types for IoT applications, monitoring
+ * systems, or data collection.
+ */
+
+syntax = "proto3";
+
+package messages;
+
+import "message_header.proto";
+
+option cc_enable_arenas = true;
+
+/**
+ * Represents a single sensor reading with metadata
+ */
+message SensorReadingMsg
+{
+   // Common message header
+   MessageHeader header = 1;
+
+   // Unique identifier for the sensor
+   string sensor_id = 2;
+
+   // Human-readable sensor name
+   string sensor_name = 3;
+
+   // The measured value
+   double value = 4;
+
+   // Unit of measurement (e.g., "celsius", "percent", "meters")
+   string unit = 5;
+
+   // Unix timestamp in milliseconds when the reading was taken
+   int64 timestamp_ms = 6;
+
+   // Quality indicator (0-100, where 100 is highest quality)
+   int32 quality = 7;
+
+   // Sensor status
+   SensorStatus status = 8;
+
+   // Optional location information
+   Location location = 9;
+
+   // Additional metadata as key-value pairs
+   map<string, string> metadata = 10;
+}
+
+/**
+ * Status of a sensor
+ */
+enum SensorStatus
+{
+   SENSOR_STATUS_UNKNOWN = 0;
+   SENSOR_STATUS_ONLINE = 1;
+   SENSOR_STATUS_OFFLINE = 2;
+   SENSOR_STATUS_ERROR = 3;
+   SENSOR_STATUS_CALIBRATING = 4;
+   SENSOR_STATUS_MAINTENANCE = 5;
+}
+
+/**
+ * Geographic location
+ */
+message Location
+{
+   double latitude = 1;
+   double longitude = 2;
+   double altitude = 3;  // meters above sea level
+}

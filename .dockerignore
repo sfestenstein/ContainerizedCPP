@@ -1,0 +1,16 @@
+# Build artifacts
+build/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# Git
+.git/
+.gitignore
+
+# OS artifacts
+.DS_Store
+Thumbs.db

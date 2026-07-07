@@ -1,0 +1,130 @@
+/**
+ * @file command.proto
+ * @brief Protocol buffer definition for command messages
+ *
+ * This proto file defines the CommandMsg publishable message and its
+ * associated helper types for remote procedure calls, device control,
+ * or service orchestration.
+ */
+
+syntax = "proto3";
+
+package messages;
+
+import "message_header.proto";
+
+option cc_enable_arenas = true;
+
+/**
+ * A command to be executed by a remote system
+ */
+message CommandMsg
+{
+   // Common message header
+   MessageHeader header = 1;
+
+   // Unique identifier for this command
+   string command_id = 2;
+
+   // Type of command to execute
+   CommandType type = 3;
+
+   // Target system or device to execute the command
+   string target = 4;
+
+   // Command parameters
+   oneof parameters
+   {
+      StartParameters start_params = 5;
+      StopParameters stop_params = 6;
+      ConfigureParameters configure_params = 7;
+      QueryParameters query_params = 8;
+   }
+
+   // When this command was issued
+   int64 issued_at_ms = 9;
+
+   // Optional timeout in milliseconds (0 = no timeout)
+   int64 timeout_ms = 10;
+
+   // Priority level (higher = more urgent)
+   int32 priority = 11;
+
+   // User or system that issued the command
+   string issuer = 12;
+}
+
+/**
+ * Types of commands
+ */
+enum CommandType
+{
+   COMMAND_TYPE_UNKNOWN = 0;
+   COMMAND_TYPE_START = 1;
+   COMMAND_TYPE_STOP = 2;
+   COMMAND_TYPE_RESTART = 3;
+   COMMAND_TYPE_CONFIGURE = 4;
+   COMMAND_TYPE_QUERY = 5;
+   COMMAND_TYPE_RESET = 6;
+   COMMAND_TYPE_UPDATE = 7;
+}
+
+/**
+ * Parameters for start command
+ */
+message StartParameters
+{
+   // Mode to start in
+   string mode = 1;
+
+   // Initial configuration values
+   map<string, string> initial_config = 2;
+
+   // Whether to wait for full startup before returning
+   bool wait_for_ready = 3;
+}
+
+/**
+ * Parameters for stop command
+ */
+message StopParameters
+{
+   // Graceful shutdown timeout in ms
+   int64 graceful_timeout_ms = 1;
+
+   // Force stop if graceful fails
+   bool force_if_timeout = 2;
+
+   // Reason for stopping
+   string reason = 3;
+}
+
+/**
+ * Parameters for configure command
+ */
+message ConfigureParameters
+{
+   // Configuration values to set
+   map<string, string> settings = 1;
+
+   // Whether to persist the configuration
+   bool persist = 2;
+
+   // Whether to apply immediately or on next restart
+   bool apply_immediately = 3;
+}
+
+/**
+ * Parameters for query command
+ */
+message QueryParameters
+{
+   // What to query
+   repeated string query_fields = 1;
+
+   // Filter criteria
+   map<string, string> filters = 2;
+
+   // Maximum results to return
+   int32 max_results = 3;
+}

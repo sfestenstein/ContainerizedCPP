@@ -1,0 +1,29 @@
+{
+   "name": "StarterCpp Dev",
+   "build": {
+      "dockerfile": "../Dockerfile",
+      "context": ".."
+   },
+   "workspaceFolder": "/workspaces/StarterCpp",
+   "mounts": [
+      "source=startercpp-build,target=/workspaces/StarterCpp/build,type=volume"
+   ],
+   "remoteUser": "root",
+   "postCreateCommand": "cmake --version && ninja --version && g++ --version",
+   "customizations": {
+      "vscode": {
+         "extensions": [
+            "ms-vscode.cpptools",
+            "ms-vscode.cmake-tools",
+            "github.copilot",
+            "github.copilot-chat"
+         ],
+         "settings": {
+            "cmake.configureSettings": {},
+            "cmake.generator": "Ninja",
+            "editor.tabSize": 3,
+            "editor.insertSpaces": true
+         }
+      }
+   }
+}

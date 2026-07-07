@@ -1,0 +1,31 @@
+# Enforce LF line endings for all text files regardless of OS
+* text=auto eol=lf
+
+# Explicitly declare text files
+*.cpp text eol=lf
+*.h text eol=lf
+*.hpp text eol=lf
+*.c text eol=lf
+*.cmake text eol=lf
+*.py text eol=lf
+*.proto text eol=lf
+*.idl text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.sh text eol=lf
+*.cfg text eol=lf
+*.in text eol=lf
+*.xml text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary

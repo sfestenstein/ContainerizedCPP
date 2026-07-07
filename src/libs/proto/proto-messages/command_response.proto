@@ -1,0 +1,85 @@
+/**
+ * @file command_response.proto
+ * @brief Protocol buffer definition for command response messages
+ *
+ * This proto file defines the CommandResponseMsg publishable message
+ * and its associated helper types.
+ */
+
+syntax = "proto3";
+
+package messages;
+
+import "message_header.proto";
+
+option cc_enable_arenas = true;
+
+/**
+ * Response to a command
+ */
+message CommandResponseMsg
+{
+   // Common message header
+   MessageHeader header = 1;
+
+   // ID of the command this is responding to
+   string command_id = 2;
+
+   // Whether the command succeeded
+   bool success = 3;
+
+   // Status code
+   ResponseStatus status = 4;
+
+   // Human-readable message
+   string message = 5;
+
+   // Detailed error information if failed
+   ErrorDetails error = 6;
+
+   // Result data if applicable
+   map<string, string> result_data = 7;
+
+   // When the response was generated
+   int64 responded_at_ms = 8;
+
+   // Time taken to execute the command in ms
+   int64 execution_time_ms = 9;
+}
+
+/**
+ * Response status codes
+ */
+enum ResponseStatus
+{
+   RESPONSE_STATUS_UNKNOWN = 0;
+   RESPONSE_STATUS_OK = 1;
+   RESPONSE_STATUS_ACCEPTED = 2;
+   RESPONSE_STATUS_PENDING = 3;
+   RESPONSE_STATUS_FAILED = 4;
+   RESPONSE_STATUS_TIMEOUT = 5;
+   RESPONSE_STATUS_INVALID = 6;
+   RESPONSE_STATUS_UNAUTHORIZED = 7;
+   RESPONSE_STATUS_NOT_FOUND = 8;
+}
+
+/**
+ * Detailed error information
+ */
+message ErrorDetails
+{
+   // Error code
+   int32 error_code = 1;
+
+   // Error category
+   string category = 2;
+
+   // Detailed error message
+   string details = 3;
+
+   // Stack trace or debug info (optional, for development)
+   string debug_info = 4;
+
+   // Suggested remediation steps
+   repeated string suggestions = 5;
+}

@@ -1,0 +1,25 @@
+/**
+ * @file message_header.proto
+ * @brief Protocol buffer definition for header information for
+ *        all messages sent
+ *
+ * This proto file defines a message header.  All messages are intended
+ * to include this in their definition for debugging purposes.
+ */
+
+syntax = "proto3";
+
+package messages;
+
+/**
+ * Common header included in all published messages
+ */
+message MessageHeader
+{
+   // Type identifier for the message (e.g., "SensorReading", "Command")
+   string message_type = 1;
+
+   // Timestamp in nanoseconds since Unix epoch
+   int64 timestamp_ns = 2;
+}
+

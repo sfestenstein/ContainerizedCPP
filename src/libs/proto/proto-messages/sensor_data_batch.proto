@@ -1,0 +1,37 @@
+/**
+ * @file sensor_data_batch.proto
+ * @brief Protocol buffer definition for batched sensor data messages
+ *
+ * This proto file defines the SensorDataBatchMsg publishable message
+ * for transmitting collections of sensor readings.
+ */
+
+syntax = "proto3";
+
+package messages;
+
+import "message_header.proto";
+import "sensor_reading.proto";
+
+option cc_enable_arenas = true;
+
+/**
+ * A batch of sensor readings
+ */
+message SensorDataBatchMsg
+{
+   // Common message header
+   MessageHeader header = 1;
+
+   // Collection of sensor readings
+   repeated SensorReadingMsg readings = 2;
+
+   // Batch identifier
+   string batch_id = 3;
+
+   // When this batch was created
+   int64 created_at_ms = 4;
+
+   // Source system identifier
+   string source_system = 5;
+}

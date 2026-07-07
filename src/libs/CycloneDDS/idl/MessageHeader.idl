@@ -1,0 +1,18 @@
+/**
+ * @file MessageHeader.idl
+ * @brief Common message header included by all DDS topic types.
+ *
+ * Provides a uniform envelope with message identity and a high-resolution
+ * timestamp (nanoseconds since the Unix epoch).
+ */
+
+module dds_messages
+{
+
+   struct MessageHeader
+   {
+      string<128> message_type;
+      long long   timestamp_ns;
+   };
+
+};

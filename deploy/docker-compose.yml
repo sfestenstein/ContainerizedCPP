@@ -1,0 +1,107 @@
+# =============================================================================
+# StarterCpp Microservices — Docker Compose
+#
+# Three services sharing a DDS domain on a Docker bridge network.
+# Each container runs one process — the core microservice pattern.
+#
+# ┌─────────────────────────────────────────────────────┐
+# │  Docker bridge network (dds-net)                    │
+# │                                                     │
+# │  ┌──────────────┐    DDS     ┌──────────────────┐   │
+# │  │ DDSPublisher  │──────────▶│  DDSSubscriber    │   │
+# │  │ SensorTopic   │           │  (logs messages)  │   │
+# │  │ TrackTopic    │           └──────────────────┘   │
+# │  │ @ 10 Hz       │    DDS     ┌──────────────────┐   │
+# │  └──────────────┘──────────▶│  Omniscope         │   │
+# │                              │  :8080 (HTTP/WS)  │──┼──▶ Browser
+# │                              └──────────────────┘   │
+# └─────────────────────────────────────────────────────┘
+#
+# Usage:
+#   1. Build the dev base image (one-time, from repo root):
+#        docker build -t startercpp-dev .
+#
+#   2. Build and start the services:
+#        docker compose -f deploy/docker-compose.yml up --build
+#
+#   3. Open Omniscope in your browser:
+#        http://localhost:8080
+#
+#   4. Stop everything:
+#        docker compose -f deploy/docker-compose.yml down
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# YAML anchor: shared configuration for all services
+# ---------------------------------------------------------------------------
+# "x-" prefixed keys are called "extension fields" — Compose ignores them as
+# services but they can be referenced via YAML anchors (&common / *common).
+# This avoids repeating the same build/image/network config in every service.
+# ---------------------------------------------------------------------------
+x-common: &common
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile
+  image: startercpp-deploy
+  networks:
+    - dds-net
+  environment:
+    # Tell Cyclone DDS to use our custom config (enables unicast peer discovery)
+    - CYCLONEDDS_URI=file:///etc/cyclonedds/cyclonedds.xml
+  volumes:
+    # Mount the DDS config as a read-only file inside the container
+    - ./cyclonedds.xml:/etc/cyclonedds/cyclonedds.xml:ro
+  restart: on-failure
+
+# ---------------------------------------------------------------------------
+# The services — each container runs exactly ONE process (microservice pattern)
+# ---------------------------------------------------------------------------
+services:
+  # Service 1: Publishes DDS SensorReading + TrackUpdate at 10 Hz
+  dds-publisher:
+    <<: *common
+    container_name: dds-publisher
+    command: ["DDSPublisher", "0"]
+
+  # Service 2: Subscribes to and logs all DDS messages
+  dds-subscriber:
+    <<: *common
+    container_name: dds-subscriber
+    command: ["DDSSubscriber", "0"]
+    # Wait for publisher to start (ordering hint, not a readiness guarantee)
+    depends_on:
+      - dds-publisher
+
+  zyre-publisher:
+    <<: *common
+    container_name: zyre-publisher
+    command: ["ZyrePublisher", "0"]
+
+  zyre-subscriber:
+    <<: *common
+    container_name: zyre-subscriber
+    command: ["ZyreSubscriber", "0"]
+
+  # Service 3: Web-based traffic inspector — the only externally-exposed service
+  omniscope:
+    <<: *common
+    container_name: omniscope
+    command: ["Omniscope", "0", "8080"]
+    ports:
+      # HOST:CONTAINER — maps host port 8080 to the container's port 8080
+      # This is what lets your browser reach Omniscope from outside Docker
+      - "8080:8080"
+    depends_on:
+      - dds-publisher
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+# A user-defined bridge network. All containers on this network can reach
+# each other by container name (Docker's built-in DNS). This is how the
+# cyclonedds.xml peer list ("dds-publisher", "dds-subscriber", "omniscope")
+# resolves to actual IP addresses.
+# ---------------------------------------------------------------------------
+networks:
+  dds-net:
+    driver: bridge

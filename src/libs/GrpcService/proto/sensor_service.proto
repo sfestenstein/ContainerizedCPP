@@ -1,0 +1,165 @@
+/**
+ * @file sensor_service.proto
+ * @brief gRPC service definitions for sensor data, command control,
+ *        and diagnostics.
+ *
+ * Demonstrates four RPC patterns:
+ *   - Unary
+ *   - Server-streaming
+ *   - Client-streaming
+ *   - Fire-and-forget (returns Empty)
+ */
+
+syntax = "proto3";
+
+package grpc_sensor;
+
+import "google/protobuf/empty.proto";
+
+option cc_enable_arenas = true;
+
+// ============================================================================
+//  Sensor messages
+// ============================================================================
+
+message SensorReading
+{
+   string sensor_id    = 1;
+   string sensor_name  = 2;
+   double value        = 3;
+   string unit         = 4;
+   int64  timestamp_ns = 5;
+}
+
+message SubmitReadingRequest
+{
+   SensorReading reading = 1;
+}
+
+message SubmitReadingResponse
+{
+   bool   accepted  = 1;
+   string detail    = 2;
+}
+
+message StreamReadingsRequest
+{
+   // Optional filter: empty means all sensors
+   string sensor_id_filter = 1;
+   // How many readings to stream (0 = indefinite)
+   int32  max_count        = 2;
+}
+
+// ============================================================================
+//  Command messages
+// ============================================================================
+
+enum CommandType
+{
+   COMMAND_UNKNOWN  = 0;
+   COMMAND_START    = 1;
+   COMMAND_STOP     = 2;
+   COMMAND_RESET    = 3;
+   COMMAND_CALIBRATE = 4;
+}
+
+message CommandRequest
+{
+   string      command_id = 1;
+   CommandType type       = 2;
+   string      target_id  = 3;  // sensor or subsystem to target
+   string      payload    = 4;  // optional JSON parameters
+}
+
+message CommandResponse
+{
+   string command_id = 1;
+   bool   success    = 2;
+   string message    = 3;
+}
+
+// ============================================================================
+//  Diagnostics messages
+// ============================================================================
+
+enum Severity
+{
+   SEVERITY_DEBUG   = 0;
+   SEVERITY_INFO    = 1;
+   SEVERITY_WARNING = 2;
+   SEVERITY_ERROR   = 3;
+}
+
+message LogEntry
+{
+   string   source       = 1;
+   Severity severity     = 2;
+   string   message      = 3;
+   int64    timestamp_ns = 4;
+}
+
+message LogSummary
+{
+   int32 entries_received = 1;
+   int32 errors           = 2;
+   int32 warnings         = 3;
+}
+
+message HealthCheckRequest
+{
+   string service_name = 1;
+}
+
+message HealthCheckResponse
+{
+   enum Status
+   {
+      UNKNOWN     = 0;
+      SERVING     = 1;
+      NOT_SERVING = 2;
+   }
+   Status status       = 1;
+   string details      = 2;
+   int64  uptime_ms    = 3;
+}
+
+// ============================================================================
+//  Services
+// ============================================================================
+
+/**
+ * SensorService — sensor data exchange
+ *   - SubmitReading  : unary
+ *   - StreamReadings : server-streaming
+ *   - ClearReadings  : fire-and-forget (returns Empty)
+ */
+service SensorService
+{
+   rpc SubmitReading  (SubmitReadingRequest)  returns (SubmitReadingResponse);
+   rpc StreamReadings (StreamReadingsRequest) returns (stream SensorReading);
+   rpc ClearReadings  (google.protobuf.Empty) returns (google.protobuf.Empty);
+}
+
+/**
+ * CommandService — remote command execution
+ *   - ExecuteCommand : unary with response
+ *   - FireCommand    : fire-and-forget (returns Empty)
+ */
+service CommandService
+{
+   rpc ExecuteCommand (CommandRequest) returns (CommandResponse);
+   rpc FireCommand    (CommandRequest) returns (google.protobuf.Empty);
+}
+
+/**
+ * DiagnosticsService — health checks and log ingestion
+ *   - CheckHealth   : unary
+ *   - IngestLogs    : client-streaming (client pushes log entries, server summarises)
+ *   - ResetCounters : fire-and-forget (returns Empty)
+ */
+service DiagnosticsService
+{
+   rpc CheckHealth   (HealthCheckRequest)     returns (HealthCheckResponse);
+   rpc IngestLogs    (stream LogEntry)        returns (LogSummary);
+   rpc ResetCounters (google.protobuf.Empty)  returns (google.protobuf.Empty);
+}

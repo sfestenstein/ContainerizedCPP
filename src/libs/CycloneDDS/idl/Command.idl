@@ -1,0 +1,56 @@
+/**
+ * @file Command.idl
+ * @brief DDS IDL definition for command and control topics.
+ *
+ * Defines command messages for system control and tasking.
+ */
+
+#include "MessageHeader.idl"
+
+module dds_messages
+{
+
+   enum CommandType
+   {
+      CMD_START,
+      CMD_STOP,
+      CMD_CONFIGURE,
+      CMD_STATUS_REQUEST,
+      CMD_RESET
+   };
+
+   enum CommandPriority
+   {
+      PRIORITY_LOW,
+      PRIORITY_NORMAL,
+      PRIORITY_HIGH,
+      PRIORITY_CRITICAL
+   };
+
+   @topic
+   struct Command
+   {
+      MessageHeader header;
+      @key string<64> command_id;
+      string<64> source_id;
+      string<64> target_id;
+      CommandType type;
+      CommandPriority priority;
+      string<512> payload;
+      long long timestamp_ms;
+      long sequence_number;
+   };
+
+   @topic
+   struct CommandResponse
+   {
+      MessageHeader header;
+      @key string<64> response_id;
+      string<64> command_id;
+      string<64> responder_id;
+      boolean success;
+      string<256> message;
+      long long timestamp_ms;
+   };
+
+};

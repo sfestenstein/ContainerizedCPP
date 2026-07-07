@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  container-build:
+    name: Container Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build development container image
+        run: |
+          docker build -t startercpp-ci .
+
+      - name: Configure, build, test, and coverage in container
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -w /workspace \
+            startercpp-ci \
+            bash -lc "cmake --preset ci-linux && cmake --build --preset ci-linux && ctest --preset ci-linux && cmake --build --preset ci-linux --target coverage"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: build/ci-linux/coverage.info
+          fail_ci_if_error: false
+          verbose: true
+        continue-on-error: true
+

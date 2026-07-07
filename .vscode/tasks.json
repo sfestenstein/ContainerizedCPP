@@ -1,0 +1,34 @@
+{
+   "version": "2.0.0",
+   "tasks": [
+      {
+         "label": "Deploy Microservices",
+         "type": "shell",
+         "command": "docker compose -f deploy/docker-compose.yml up --build",
+         "options": {
+            "cwd": "${workspaceFolder}"
+         },
+         "group": "none",
+         "presentation": {
+            "reveal": "always",
+            "panel": "dedicated",
+            "clear": true
+         },
+         "problemMatcher": []
+      },
+      {
+         "label": "Stop Microservices",
+         "type": "shell",
+         "command": "docker compose -f deploy/docker-compose.yml down",
+         "options": {
+            "cwd": "${workspaceFolder}"
+         },
+         "group": "none",
+         "presentation": {
+            "reveal": "always",
+            "panel": "shared"
+         },
+         "problemMatcher": []
+      }
+   ]
+}

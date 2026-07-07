@@ -1,0 +1,15 @@
+# =============================================================================
+# StarterCpp Unit Tests Clang-Tidy Configuration
+# =============================================================================
+# Relaxed checks for test code — Google Test macros and test patterns
+# generate many false positives with strict linting.
+# =============================================================================
+
+InheritParentConfig: true
+
+Checks: >
+  -misc-const-correctness,
+  -bugprone-unchecked-optional-access,
+  -modernize-avoid-c-arrays
+
+...
