@@ -1,0 +1,29 @@
+/**
+ * @file RadarAlert.idl
+ * @brief Radar -> Workstation discrete fault/event topic. Reliable + TransientLocal +
+ *        KeepAll QoS, so a late-joining Workstation receives the bounded history of
+ *        recent alerts rather than only the single latest one.
+ */
+
+#include "RadarMessageHeader.idl"
+
+module radar_demo
+{
+
+   enum AlertSeverity
+   {
+      ALERT_INFO,
+      ALERT_WARNING,
+      ALERT_CRITICAL
+   };
+
+   struct RadarAlert
+   {
+      RadarMessageHeader header;
+      @key string<64> alert_id;
+      AlertSeverity severity;
+      string<64> component_id;
+      string<256> message;
+   };
+
+};

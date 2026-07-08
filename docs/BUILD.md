@@ -1,6 +1,6 @@
 # Build Guide
 
-This document describes the container-first build flow for StarterCpp.
+This document describes the container-first build flow for ContainerizedCPP.
 
 ## Prerequisites
 
@@ -26,8 +26,8 @@ ctest --preset container-debug
 ### Docker CLI
 
 ```bash
-docker build -t startercpp-dev .
-docker run --rm -it -v "$PWD":/workspace -w /workspace startercpp-dev \
+docker build -t ContainerizedCPP-dev .
+docker run --rm -it -v "$PWD":/workspace -w /workspace ContainerizedCPP-dev \
   bash -lc "cmake --preset container-debug && cmake --build --preset container-debug && ctest --preset container-debug"
 ```
 
@@ -41,14 +41,6 @@ cmake --build --preset container-debug
 ctest --preset container-debug
 ```
 
-### Debug with clang-tidy
-
-```bash
-cmake --preset debug-with-clang-tidy
-cmake --build --preset debug-with-clang-tidy
-ctest --preset debug-with-clang-tidy
-```
-
 ### Release
 
 ```bash
@@ -59,34 +51,24 @@ cmake --build --preset container-release
 ### Coverage
 
 ```bash
-cmake --preset coverage
-cmake --build --preset coverage
-ctest --preset coverage
-cmake --build --preset coverage --target coverage
+cmake --preset container-coverage
+cmake --build --preset container-coverage
+ctest --preset container-coverage
+cmake --build --preset container-coverage --target coverage
 ```
 
 Coverage presets are primarily for CI and verification workflows.
 
-### FastDDS Integration Target (Container)
-
-```bash
-cmake --preset container-debug-fastdds
-cmake --build --preset container-debug-fastdds
-```
-
-This builds the optional `FastDDSLib` target used for upcoming FastDDS-backed apps.
-
 ## Build Options
 
-| Option              | Default                | Description                               |
-| ------------------- | ---------------------- | ----------------------------------------- |
-| `BUILD_TESTS`       | ON                     | Build unit tests                          |
-| `ENABLE_COVERAGE`   | OFF (coverage presets) | Enable coverage report targets            |
-| `BUILD_FASTDDS_LIB` | OFF                    | Build optional FastDDS integration target |
+| Option            | Default                | Description                    |
+| ----------------- | ---------------------- | ------------------------------ |
+| `BUILD_TESTS`     | ON                     | Build unit tests               |
+| `ENABLE_COVERAGE` | OFF (coverage presets) | Enable coverage report targets |
 
 ## Running Applications
 
-After building with `debug` preset:
+After building with `container-debug` preset:
 
 ```bash
 ./build/container-debug/bin/ZyreSubscriber
@@ -111,13 +93,13 @@ In this repository, using the dev container is the supported path.
 
 ### Compiler Unsupported
 
-StarterCpp supports only GNU and Clang compilers.
+ContainerizedCPP supports only GNU and Clang compilers.
 
 ### FastDDS Target Configure Fails
 
-If `container-debug-fastdds` fails with missing `fastrtps`, rebuild the dev image so new
+If `container-debug` fails with missing `fastrtps`, rebuild the dev image so new
 FastDDS packages are present:
 
 ```bash
-docker build -t startercpp-dev .
+docker build -t ContainerizedCPP-dev .
 ```

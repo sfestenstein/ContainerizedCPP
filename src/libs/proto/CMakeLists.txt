@@ -57,7 +57,7 @@ add_library(${PROJECT_NAME} STATIC
    ${PROTO_HDRS}
 )
 
-add_library(StarterCpp::proto ALIAS ${PROJECT_NAME})
+add_library(ContainerizedCPP::proto ALIAS ${PROJECT_NAME})
 
 # Include directories (SYSTEM suppresses warnings in generated headers)
 target_include_directories(${PROJECT_NAME}

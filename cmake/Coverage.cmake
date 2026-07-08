@@ -19,7 +19,7 @@
 #   include(Coverage)
 #   add_unified_coverage_target(
 #      NAME     coverage
-#      TITLE    "StarterCpp Coverage Report"
+#      TITLE    "ContainerizedCPP Coverage Report"
 #      TARGETS  CommonUtilsCoverage PubSubCoverage DDSCoverage Vita49_2Coverage
 #   )
 # =============================================================================

@@ -1,10 +1,10 @@
-# GitHub Copilot Instructions for StarterCpp
+# GitHub Copilot Instructions for ContainerizedCPP
 
-This document provides context and guidelines for GitHub Copilot when working with the StarterCpp project.
+This document provides context and guidelines for GitHub Copilot when working with the ContainerizedCPP project.
 
 ## Project Overview
 
-StarterCpp is a C++20 starter project template using:
+ContainerizedCPP is a C++20 starter, containerized project template using:
 - **Build System**: CMake 3.25+ with presets
 - **Dependency Management**: Container/system packages
 - **Compiler**: GCC 13+ or Clang 15+ (Linux container)
@@ -14,7 +14,7 @@ StarterCpp is a C++20 starter project template using:
 ## Project Structure
 
 ```
-StarterCpp/
+ContainerizedCPP/
 ├── src/
 │   ├── apps/               # Executables
 │   │   ├── Omniscope/          # Web-based IPC traffic inspector
@@ -220,14 +220,14 @@ cmake --build --preset container-debug
 ctest --preset container-debug
 
 # Coverage
-cmake --build --preset coverage --target CommonUtilsCoverage
+cmake --build --preset container-coverage --target CommonUtilsCoverage
 ```
 
 ## CMake Targets
 
 - `CommonUtils` - CommonUtils shared library
 - `PubSubLib` - PubSub shared library (Zyre and HighBandwidth messaging)
-- `ProtoLib` - Protobuf library (alias: `StarterCpp::proto`)
+- `ProtoLib` - Protobuf library (alias: `ContainerizedCPP::proto`)
 - `CycloneDDSLib` - DDS library (STATIC, wrappers + generated IDL types + JSON helpers)
 - `DDSMessages` - Generated IDL C++ types (linked by CycloneDDSLib)
 - `Vita49_2` - VITA 49.2 signal data packet codec shared library

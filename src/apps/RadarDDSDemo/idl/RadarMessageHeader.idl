@@ -1,0 +1,15 @@
+/**
+ * @file RadarMessageHeader.idl
+ * @brief Shared envelope embedded as the first field of every RadarDDSDemo message.
+ */
+
+module radar_demo
+{
+
+   struct RadarMessageHeader
+   {
+      string<64> sender_id;
+      long long timestamp_ns;
+   };
+
+};

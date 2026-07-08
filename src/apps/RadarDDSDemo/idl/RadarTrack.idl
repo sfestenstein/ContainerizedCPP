@@ -1,0 +1,34 @@
+/**
+ * @file RadarTrack.idl
+ * @brief Radar -> Workstation track data topic. Best Effort QoS.
+ *
+ * sequence_number is per-track and lets a subscriber detect gaps caused by
+ * best-effort delivery loss.
+ */
+
+#include "RadarMessageHeader.idl"
+
+module radar_demo
+{
+
+   enum TrackState
+   {
+      TRACK_NEW,
+      TRACK_UPDATED,
+      TRACK_DROPPED
+   };
+
+   struct RadarTrack
+   {
+      RadarMessageHeader header;
+      @key long track_id;
+      double range_m;
+      double azimuth_deg;
+      double elevation_deg;
+      double radial_velocity_mps;
+      double confidence;
+      TrackState status;
+      long sequence_number;
+   };
+
+};

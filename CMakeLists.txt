@@ -1,12 +1,12 @@
 # =============================================================================
-# StarterCpp - Root CMakeLists.txt
+# ContainerizedCPP - Root CMakeLists.txt
 # =============================================================================
 cmake_minimum_required(VERSION 3.25)
 
 # Project definition
-project(StarterCpp
+project(ContainerizedCPP
    VERSION 1.0.0
-   DESCRIPTION "A robust C++ starter project template"
+   DESCRIPTION "A robust C++ Containerized starter project template"
    LANGUAGES CXX
 )
 
@@ -22,7 +22,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # =============================================================================
 
 option(BUILD_TESTS "Build unit tests" ON)
-option(BUILD_FASTDDS_LIB "Build FastDDS integration library" OFF)
 
 # =============================================================================
 # Compiler Warnings
@@ -56,7 +55,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
       $<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:Release>>:-Wno-stringop-overflow>
    )
 else()
-   message(FATAL_ERROR "StarterCpp supports only GNU or Clang compilers.")
+   message(FATAL_ERROR "ContainerizedCPP supports only GNU or Clang compilers.")
 endif()
 
 # =============================================================================
@@ -74,6 +73,30 @@ if(NOT Protobuf_FOUND AND NOT protobuf_FOUND)
 endif()
 find_package(cppzmq REQUIRED)
 find_package(CycloneDDS REQUIRED)
+find_package(OpenSSL REQUIRED)
+
+# Some distros/toolchains expose OpenSSL variables but do not create imported
+# targets. gRPC's CMake package expects OpenSSL::SSL/OpenSSL::Crypto to exist.
+if(OpenSSL_FOUND)
+   if(NOT TARGET OpenSSL::Crypto AND DEFINED OPENSSL_CRYPTO_LIBRARY)
+      add_library(OpenSSL::Crypto UNKNOWN IMPORTED)
+      set_target_properties(OpenSSL::Crypto PROPERTIES
+         IMPORTED_LOCATION "${OPENSSL_CRYPTO_LIBRARY}"
+         INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+      )
+   endif()
+
+   if(NOT TARGET OpenSSL::SSL AND DEFINED OPENSSL_SSL_LIBRARY)
+      add_library(OpenSSL::SSL UNKNOWN IMPORTED)
+      set_target_properties(OpenSSL::SSL PROPERTIES
+         IMPORTED_LOCATION "${OPENSSL_SSL_LIBRARY}"
+         INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+      )
+      if(TARGET OpenSSL::Crypto)
+         target_link_libraries(OpenSSL::SSL INTERFACE OpenSSL::Crypto)
+      endif()
+   endif()
+endif()
 
 # CycloneDDS-CXX imports may reference this target when built with iceoryx.
 find_package(iceoryx_binding_c QUIET CONFIG)
@@ -121,9 +144,7 @@ add_subdirectory(src/libs/CommonUtils)
 add_subdirectory(src/libs/proto)
 add_subdirectory(src/libs/PubSub)
 add_subdirectory(src/libs/CycloneDDS)
-if(BUILD_FASTDDS_LIB)
-   add_subdirectory(src/libs/FastDDS)
-endif()
+add_subdirectory(src/libs/FastDDS)
 add_subdirectory(src/libs/Vita49_2)
 add_subdirectory(src/libs/GrpcService)
 
@@ -143,7 +164,7 @@ if(BUILD_TESTS)
    include(Coverage)
    add_unified_coverage_target(
       NAME    coverage
-      TITLE   "StarterCpp Coverage Report"
+      TITLE   "ContainerizedCPP Coverage Report"
    )
 endif()
 
@@ -154,7 +175,7 @@ endif()
 include(GNUInstallDirs)
 
 install(TARGETS CommonUtils ProtoLib PubSubLib Vita49_2
-   EXPORT StarterCppTargets
+   EXPORT ContainerizedCppTargets
    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
@@ -166,12 +187,11 @@ install(TARGETS CommonUtils ProtoLib PubSubLib Vita49_2
 # =============================================================================
 
 message(STATUS "")
-message(STATUS "=== StarterCpp Configuration ===")
+message(STATUS "=== ContainerizedCPP Configuration ===")
 message(STATUS "  Version:          ${PROJECT_VERSION}")
 message(STATUS "  Build type:       ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C++ Standard:     ${CMAKE_CXX_STANDARD}")
 message(STATUS "  Compiler:         ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "  Build tests:      ${BUILD_TESTS}")
-message(STATUS "  FastDDS lib:      ${BUILD_FASTDDS_LIB}")
 message(STATUS "================================")
 message(STATUS "")

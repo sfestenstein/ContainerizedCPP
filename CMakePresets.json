@@ -19,10 +19,9 @@
          }
       },
       {
-         "name": "debug",
-         "displayName": "Debug",
+         "name": "debug-san",
+         "displayName": "Debug with Sanitizers",
          "inherits": "project-default",
-         "binaryDir": "${sourceDir}/build/presets/debug",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Debug",
             "BUILD_TESTS": "ON",
@@ -33,29 +32,18 @@
          }
       },
       {
-         "name": "debug-with-clang-tidy",
-         "displayName": "Debug with Clang-Tidy",
-         "inherits": "debug",
-         "binaryDir": "${sourceDir}/build/presets/debug-with-clang-tidy",
-         "cacheVariables": {
-            "CMAKE_CXX_CLANG_TIDY": "clang-tidy;--header-filter=${sourceDir}/src/.*"
-         }
-      },
-      {
          "name": "release",
          "displayName": "Release",
          "inherits": "project-default",
-         "binaryDir": "${sourceDir}/build/presets/release",
          "cacheVariables": {
             "CMAKE_BUILD_TYPE": "Release",
             "BUILD_TESTS": "OFF"
          }
       },
       {
-         "name": "debug-with-coverage",
-         "displayName": "Debug with Coverage",
-         "inherits": "debug",
-         "binaryDir": "${sourceDir}/build/presets/debug-with-coverage",
+         "name": "debug-coverage",
+         "displayName": "Debug Coverage",
+         "inherits": "debug-san",
          "cacheVariables": {
             "ENABLE_COVERAGE": "ON",
             "CMAKE_CXX_FLAGS": "--coverage -fprofile-arcs -ftest-coverage",
@@ -63,140 +51,43 @@
             "CMAKE_SHARED_LINKER_FLAGS": "--coverage",
             "CMAKE_MODULE_LINKER_FLAGS": "--coverage"
          }
-      },
-      {
-         "name": "coverage",
-         "displayName": "Coverage",
-         "inherits": "debug-with-coverage"
       },
       {
          "name": "ci-linux",
          "displayName": "CI Linux",
-         "inherits": "project-default",
-         "cacheVariables": {
-            "CMAKE_BUILD_TYPE": "Debug",
-            "BUILD_TESTS": "ON",
-            "BUILD_FASTDDS_LIB": "ON",
-            "ENABLE_COVERAGE": "ON",
-            "CMAKE_CXX_FLAGS": "--coverage -fprofile-arcs -ftest-coverage",
-            "CMAKE_EXE_LINKER_FLAGS": "--coverage",
-            "CMAKE_SHARED_LINKER_FLAGS": "--coverage",
-            "CMAKE_MODULE_LINKER_FLAGS": "--coverage"
-         }
-      },
-      {
-         "name": "container-default",
-         "hidden": true,
-         "description": "Base preset for containerized builds",
-         "inherits": "project-default"
-      },
-      {
-         "name": "container-debug",
-         "displayName": "Container Debug",
-         "inherits": "container-default",
-         "cacheVariables": {
-            "CMAKE_BUILD_TYPE": "Debug",
-            "BUILD_TESTS": "ON",
-            "BUILD_FASTDDS_LIB": "OFF"
-         }
-      },
-      {
-         "name": "container-release",
-         "displayName": "Container Release",
-         "inherits": "container-default",
-         "cacheVariables": {
-            "CMAKE_BUILD_TYPE": "Release",
-            "BUILD_TESTS": "OFF",
-            "BUILD_FASTDDS_LIB": "OFF"
-         }
-      },
-      {
-         "name": "container-debug-fastdds",
-         "displayName": "Container Debug (FastDDS Lib)",
-         "inherits": "container-debug",
-         "cacheVariables": {
-            "BUILD_FASTDDS_LIB": "ON"
-         }
-      },
-      {
-         "name": "container-release-fastdds",
-         "displayName": "Container Release (FastDDS Lib)",
-         "inherits": "container-release",
-         "cacheVariables": {
-            "BUILD_FASTDDS_LIB": "ON"
-         }
+         "inherits": "debug-coverage"
       }
    ],
    "buildPresets": [
       {
-         "name": "debug",
-         "configurePreset": "debug"
-      },
-      {
-         "name": "debug-with-clang-tidy",
-         "configurePreset": "debug-with-clang-tidy"
+         "name": "debug-san",
+         "configurePreset": "debug-san"
       },
       {
          "name": "release",
          "configurePreset": "release"
       },
       {
-         "name": "debug-with-coverage",
-         "configurePreset": "debug-with-coverage"
-      },
-      {
-         "name": "coverage",
-         "configurePreset": "coverage"
+         "name": "debug-coverage",
+         "configurePreset": "debug-coverage"
       },
       {
          "name": "ci-linux",
          "configurePreset": "ci-linux"
-      },
-      {
-         "name": "container-debug",
-         "configurePreset": "container-debug"
-      },
-      {
-         "name": "container-release",
-         "configurePreset": "container-release"
-      },
-      {
-         "name": "container-debug-fastdds",
-         "configurePreset": "container-debug-fastdds"
-      },
-      {
-         "name": "container-release-fastdds",
-         "configurePreset": "container-release-fastdds"
       }
    ],
    "testPresets": [
       {
-         "name": "debug",
-         "configurePreset": "debug",
+         "name": "debug-san",
+         "configurePreset": "debug-san",
          "output": {
             "outputOnFailure": true,
             "verbosity": "default"
          }
       },
       {
-         "name": "debug-with-clang-tidy",
-         "configurePreset": "debug-with-clang-tidy",
-         "output": {
-            "outputOnFailure": true,
-            "verbosity": "default"
-         }
-      },
-      {
-         "name": "debug-with-coverage",
-         "configurePreset": "debug-with-coverage",
-         "output": {
-            "outputOnFailure": true,
-            "verbosity": "default"
-         }
-      },
-      {
-         "name": "coverage",
-         "configurePreset": "coverage",
+         "name": "debug-coverage",
+         "configurePreset": "debug-coverage",
          "output": {
             "outputOnFailure": true,
             "verbosity": "default"
@@ -205,22 +96,6 @@
       {
          "name": "ci-linux",
          "configurePreset": "ci-linux",
-         "output": {
-            "outputOnFailure": true,
-            "verbosity": "default"
-         }
-      },
-      {
-         "name": "container-debug",
-         "configurePreset": "container-debug",
-         "output": {
-            "outputOnFailure": true,
-            "verbosity": "default"
-         }
-      },
-      {
-         "name": "container-debug-fastdds",
-         "configurePreset": "container-debug-fastdds",
          "output": {
             "outputOnFailure": true,
             "verbosity": "default"

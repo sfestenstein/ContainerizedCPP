@@ -1,6 +1,6 @@
-# StarterCpp Microservice Deployment
+# ContainerizedCPP Microservice Deployment
 
-A three-service containerized deployment of the StarterCpp DDS system.  
+A three-service containerized deployment of the ContainerizedCPP DDS system.  
 This guide is written for developers familiar with containerized **development** who are
 learning containerized **deployment** and microservice architecture.
 
@@ -12,7 +12,7 @@ learning containerized **deployment** and microservice architecture.
 # From the repository root:
 
 # 1. Build the dev base image (one-time — takes a while, fully cached after)
-docker build -t startercpp-dev .
+docker build -t ContainerizedCPP-dev .
 
 # 2. Build and launch all three microservices
 docker compose -f deploy/docker-compose.yml up --build
@@ -48,7 +48,7 @@ that separates build-time from run-time:
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  Stage 1: "builder"  (FROM startercpp-dev)      │
+│  Stage 1: "builder"  (FROM ContainerizedCPP-dev)      │
 │  • Has all compilers, headers, build tools      │
 │  • COPY source → cmake configure → cmake build  │
 │  • Produces binaries in /workspace/build/...    │

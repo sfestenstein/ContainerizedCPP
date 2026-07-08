@@ -1,4 +1,4 @@
-# StarterCpp
+# ContainerizedCPP
 
 A production-ready C++20 project template using CMake presets, containerized development,
 comprehensive tests, and CI automation.
@@ -35,18 +35,15 @@ ctest --preset container-debug
 ```bash
 cmake --preset container-release
 cmake --build --preset container-release
-
-cmake --preset container-debug-fastdds
-cmake --build --preset container-debug-fastdds
 ```
 
 ### Coverage
 
 ```bash
-cmake --preset coverage
-cmake --build --preset coverage
-ctest --preset coverage
-cmake --build --preset coverage --target coverage
+cmake --preset container-coverage
+cmake --build --preset container-coverage
+ctest --preset container-coverage
+cmake --build --preset container-coverage --target coverage
 ```
 
 Coverage is primarily intended for CI or advanced validation flows. The day-to-day
@@ -64,25 +61,19 @@ developer path is container-debug/container-release.
 
 ## Presets
 
-| Preset                      | Purpose                                  |
-| --------------------------- | ---------------------------------------- |
-| `debug`                     | Development build with sanitizers        |
-| `debug-with-clang-tidy`     | Development build with clang-tidy        |
-| `release`                   | Optimized build                          |
-| `coverage`                  | Coverage-instrumented build              |
-| `container-debug`           | Container development build              |
-| `container-release`         | Container release build                  |
-| `container-debug-fastdds`   | Container debug build with FastDDS lib   |
-| `container-release-fastdds` | Container release build with FastDDS lib |
-| `ci-linux`                  | CI build with coverage                   |
+| Preset               | Purpose                             |
+| -------------------- | ----------------------------------- |
+| `container-debug`    | Container development build         |
+| `container-release`  | Container release build             |
+| `container-coverage` | Container coverage-instrumented run |
+| `ci-linux`           | CI build with coverage              |
 
 ## CMake Options
 
-| Option              | Default                | Description                                    |
-| ------------------- | ---------------------- | ---------------------------------------------- |
-| `BUILD_TESTS`       | ON                     | Build unit tests                               |
-| `ENABLE_COVERAGE`   | OFF (coverage presets) | Enable coverage report targets                 |
-| `BUILD_FASTDDS_LIB` | OFF                    | Build optional `FastDDSLib` integration target |
+| Option            | Default                | Description                    |
+| ----------------- | ---------------------- | ------------------------------ |
+| `BUILD_TESTS`     | ON                     | Build unit tests               |
+| `ENABLE_COVERAGE` | OFF (coverage presets) | Enable coverage report targets |
 
 ## Documentation
 

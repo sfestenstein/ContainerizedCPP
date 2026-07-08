@@ -1,5 +1,5 @@
 # =============================================================================
-# StarterCpp Microservices — Docker Compose
+# ContainerizedCPP Microservices — Docker Compose
 #
 # Three services sharing a DDS domain on a Docker bridge network.
 # Each container runs one process — the core microservice pattern.
@@ -19,7 +19,7 @@
 #
 # Usage:
 #   1. Build the dev base image (one-time, from repo root):
-#        docker build -t startercpp-dev .
+#        docker build -t ContainerizedCPP-dev .
 #
 #   2. Build and start the services:
 #        docker compose -f deploy/docker-compose.yml up --build
@@ -42,7 +42,7 @@ x-common: &common
   build:
     context: ..
     dockerfile: deploy/Dockerfile
-  image: startercpp-deploy
+  image: ContainerizedCPP-deploy
   networks:
     - dds-net
   environment:

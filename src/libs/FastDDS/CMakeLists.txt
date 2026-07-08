@@ -1,11 +1,13 @@
 # =============================================================================
 # FastDDS Library - CMakeLists.txt
 #
-# Initial integration target for eProsima FastDDS/Fast RTPS.
-# This target is optional and currently intended for new apps (e.g. future
-# DdsSnooper backend variants) while existing DDS apps continue to use
-# CycloneDDSLib.
+# Uses eProsima Fast DDS for topic-based pub/sub, mirroring the shape of
+# CycloneDDSLib. Unlike CycloneDDSLib, this module does not bundle its own
+# IDL/message types — consumers bring their own IDL and compile it into a
+# library via the fastddsgen_generate() CMake function (cmake/FastDDSGen.cmake).
 # =============================================================================
+
+cmake_minimum_required(VERSION 3.25)
 
 project(FastDDSLib CXX)
 
@@ -32,13 +34,15 @@ if(NOT FASTDDS_LINK_TARGET)
    )
 endif()
 
-add_library(${PROJECT_NAME} INTERFACE)
+add_library(${PROJECT_NAME} STATIC FastDDSTopicConfig.cpp)
 
-target_link_libraries(${PROJECT_NAME} INTERFACE
+target_include_directories(${PROJECT_NAME} PUBLIC
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
    ${FASTDDS_LINK_TARGET}
    CommonUtils
 )
 
-target_compile_definitions(${PROJECT_NAME} INTERFACE
-   STARTERCPP_HAS_FASTDDS=1
-)

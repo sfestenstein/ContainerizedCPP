@@ -1,6 +1,6 @@
 # Development Guide
 
-This document covers the development workflow, coding standards, and contribution guidelines for the StarterCpp project.
+This document covers the development workflow, coding standards, and contribution guidelines for the ContainerizedCPP project.
 
 ## Development Environment Setup
 
@@ -89,9 +89,9 @@ ctest --preset container-debug --output-on-failure
 ### 6. Check Coverage
 
 ```bash
-cmake --preset coverage
-cmake --build --preset coverage
-cmake --build --preset coverage --target coverage
+cmake --preset container-coverage
+cmake --build --preset container-coverage
+cmake --build --preset container-coverage --target coverage
 ```
 
 ### 7. Commit and Push

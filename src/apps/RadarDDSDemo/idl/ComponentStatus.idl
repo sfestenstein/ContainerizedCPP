@@ -1,0 +1,30 @@
+/**
+ * @file ComponentStatus.idl
+ * @brief Radar -> Workstation periodic health topic. Reliable + TransientLocal QoS,
+ *        so a late-joining Workstation immediately gets the current snapshot.
+ */
+
+#include "RadarMessageHeader.idl"
+
+module radar_demo
+{
+
+   enum ComponentHealth
+   {
+      HEALTH_NOMINAL,
+      HEALTH_DEGRADED,
+      HEALTH_FAULT,
+      HEALTH_OFFLINE
+   };
+
+   struct ComponentStatus
+   {
+      RadarMessageHeader header;
+      @key string<64> component_id;
+      ComponentHealth health;
+      double temperature_c;
+      double voltage_v;
+      string<128> detail;
+   };
+
+};

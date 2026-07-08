@@ -1,10 +1,10 @@
 # Project Design
 
-This document describes the architecture and design decisions of the StarterCpp project.
+This document describes the architecture and design decisions of the ContainerizedCPP project.
 
 ## Overview
 
-StarterCpp is designed as a production-ready C++ project template that demonstrates modern C++ best practices, build system configuration, and software engineering patterns. It includes multiple messaging libraries (Zyre, UDP multicast, DDS), a web-based IPC traffic monitor, a VITA 49.2 signal data codec, and Protocol Buffers for serialization.
+ContainerizedCPP is designed as a production-ready C++ project template that demonstrates modern C++ best practices, build system configuration, and software engineering patterns. It includes multiple messaging libraries (Zyre, UDP multicast, DDS), a web-based IPC traffic monitor, a VITA 49.2 signal data codec, and Protocol Buffers for serialization.
 
 ## Architecture
 

@@ -1,0 +1,28 @@
+/**
+ * @file Command.idl
+ * @brief Workstation -> Radar command topic. Reliable QoS.
+ */
+
+#include "RadarMessageHeader.idl"
+
+module radar_demo
+{
+
+   enum CommandType
+   {
+      CMD_START_SCAN,
+      CMD_STOP_SCAN,
+      CMD_SET_MODE
+   };
+
+   struct Command
+   {
+      RadarMessageHeader header;
+      @key string<64> command_id;
+      string<64> target_id;
+      CommandType type;
+      string<256> parameters;
+      long sequence_number;
+   };
+
+};

@@ -1,0 +1,28 @@
+/**
+ * @file CommandStatus.idl
+ * @brief Radar -> Workstation command acknowledgement topic. Reliable QoS.
+ */
+
+#include "RadarMessageHeader.idl"
+
+module radar_demo
+{
+
+   enum CommandResult
+   {
+      CMDSTATUS_ACCEPTED,
+      CMDSTATUS_REJECTED,
+      CMDSTATUS_IN_PROGRESS,
+      CMDSTATUS_COMPLETED,
+      CMDSTATUS_FAILED
+   };
+
+   struct CommandStatus
+   {
+      RadarMessageHeader header;
+      @key string<64> command_id;
+      CommandResult result;
+      string<256> detail;
+   };
+
+};

@@ -17,14 +17,14 @@ jobs:
 
       - name: Build development container image
         run: |
-          docker build -t startercpp-ci .
+          docker build -t ContainerizedCPP-ci .
 
       - name: Configure, build, test, and coverage in container
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
             -w /workspace \
-            startercpp-ci \
+            ContainerizedCPP-ci \
             bash -lc "cmake --preset ci-linux && cmake --build --preset ci-linux && ctest --preset ci-linux && cmake --build --preset ci-linux --target coverage"
 
       - name: Upload coverage to Codecov

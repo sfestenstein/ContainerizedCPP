@@ -1,12 +1,16 @@
 {
-   "name": "StarterCpp Dev",
+   "name": "ContainerizedCPP Dev",
    "build": {
       "dockerfile": "../Dockerfile",
       "context": ".."
    },
-   "workspaceFolder": "/workspaces/StarterCpp",
+   "remoteEnv": {
+      "CC": "${containerEnv:IMAGE_DEFAULT_CC}",
+      "CXX": "${containerEnv:IMAGE_DEFAULT_CXX}"
+   },
+   "workspaceFolder": "/workspaces/ContainerizedCPP",
    "mounts": [
-      "source=startercpp-build,target=/workspaces/StarterCpp/build,type=volume"
+      "source=containerizedcpp-build-ubuntu,target=/workspaces/ContainerizedCPP/build,type=volume"
    ],
    "remoteUser": "root",
    "postCreateCommand": "cmake --version && ninja --version && g++ --version",
@@ -20,7 +24,18 @@
          ],
          "settings": {
             "cmake.configureSettings": {},
-            "cmake.generator": "Ninja",
+            "cmake.configureEnvironment": {
+               "CC": "${containerEnv:IMAGE_DEFAULT_CC}",
+               "CXX": "${containerEnv:IMAGE_DEFAULT_CXX}"
+            },
+            "cmake.buildEnvironment": {
+               "CC": "${containerEnv:IMAGE_DEFAULT_CC}",
+               "CXX": "${containerEnv:IMAGE_DEFAULT_CXX}"
+            },
+            "cmake.useCMakePresets": "always",
+            "cmake.defaultConfigurePreset": "release",
+            "cmake.defaultBuildPreset": "release",
+            "cmake.defaultTestPreset": "debug-san",
             "editor.tabSize": 3,
             "editor.insertSpaces": true
          }

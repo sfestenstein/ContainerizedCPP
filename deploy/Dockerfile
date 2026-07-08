@@ -1,19 +1,19 @@
 # =============================================================================
-# StarterCpp Deployment Image (multi-stage)
+# ContainerizedCPP Deployment Image (multi-stage)
 #
 # Multi-stage build: uses the dev image (with all deps pre-compiled) as the
 # build stage, then copies only the binaries and shared libraries into a
 # minimal Ubuntu runtime image.
 #
 # Prerequisite — build the dev image once (cached, rarely changes):
-#   docker build -t startercpp-dev .
+#   docker build -t ContainerizedCPP-dev .
 #
 # Then build and run via Compose:
 #   docker compose -f deploy/docker-compose.yml up --build
 # =============================================================================
 
 # ---- Stage 1: Build the project using the dev image ------------------------
-FROM startercpp-dev AS builder
+FROM ContainerizedCPP-dev AS builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 

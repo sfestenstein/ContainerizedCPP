@@ -12,7 +12,7 @@ add_executable(${PROJECT_NAME} ${UNIT_TEST_SOURCE})
 
 target_link_libraries(${PROJECT_NAME}
    PRIVATE
-      StarterCpp::proto
+      ContainerizedCPP::proto
       GTest::gtest
       GTest::gmock
 )
