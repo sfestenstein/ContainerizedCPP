@@ -25,8 +25,8 @@ namespace CycloneDDS
  *
  * Usage:
  * @code
- *    CycloneDDS::TopicEntry entry{"SensorTopic", writerQos, readerQos};
- *    CycloneDDS::DDSPublisher<dds_messages::SensorReading> pub(0, entry);
+ *    CycloneDDS::TopicEntry entry{"RadarTrack", writerQos, readerQos};
+ *    CycloneDDS::DDSPublisher<radar_demo::RadarTrack> pub(0, entry);
  *    pub.publish(msg);
  * @endcode
  */

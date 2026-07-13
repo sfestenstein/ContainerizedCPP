@@ -18,43 +18,43 @@ This document describes the container-first build flow for ContainerizedCPP.
 3. Build and test:
 
 ```bash
-cmake --preset container-debug
-cmake --build --preset container-debug
-ctest --preset container-debug
+cmake --preset debug-san
+cmake --build --preset debug-san
+ctest --preset debug-san
 ```
 
 ### Docker CLI
 
 ```bash
-docker build -t ContainerizedCPP-dev .
-docker run --rm -it -v "$PWD":/workspace -w /workspace ContainerizedCPP-dev \
-  bash -lc "cmake --preset container-debug && cmake --build --preset container-debug && ctest --preset container-debug"
+docker build -t containerizedcpp-dev .
+docker run --rm -it -v "$PWD":/workspace -w /workspace containerizedcpp-dev \
+  bash -lc "cmake --preset debug-san && cmake --build --preset debug-san && ctest --preset debug-san"
 ```
 
 ## Preset Builds
 
-### Debug (container toolchain)
+### Debug (with sanitizers)
 
 ```bash
-cmake --preset container-debug
-cmake --build --preset container-debug
-ctest --preset container-debug
+cmake --preset debug-san
+cmake --build --preset debug-san
+ctest --preset debug-san
 ```
 
 ### Release
 
 ```bash
-cmake --preset container-release
-cmake --build --preset container-release
+cmake --preset release
+cmake --build --preset release
 ```
 
 ### Coverage
 
 ```bash
-cmake --preset container-coverage
-cmake --build --preset container-coverage
-ctest --preset container-coverage
-cmake --build --preset container-coverage --target coverage
+cmake --preset debug-coverage
+cmake --build --preset debug-coverage
+ctest --preset debug-coverage
+cmake --build --preset debug-coverage --target coverage
 ```
 
 Coverage presets are primarily for CI and verification workflows.
@@ -68,38 +68,25 @@ Coverage presets are primarily for CI and verification workflows.
 
 ## Running Applications
 
-After building with `container-debug` preset:
+After building with the `debug-san` preset:
 
 ```bash
-./build/container-debug/bin/ZyreSubscriber
-./build/container-debug/bin/ZyrePublisher
-./build/container-debug/bin/DDSSubscriber
-./build/container-debug/bin/DDSPublisher
-./build/container-debug/bin/Omniscope
+./build/debug-san/bin/OmniscopeDds 0 8080
+./build/debug-san/bin/RadarDDSRadar 0
+./build/debug-san/bin/RadarDDSWorkstation 0
 ```
 
 ## Troubleshooting
-
-### Protobuf Compiler Not Found
-
-```bash
-which protoc
-which grpc_cpp_plugin
-```
-
-If missing, install system protobuf/grpc development packages or use the dev container.
-
-In this repository, using the dev container is the supported path.
 
 ### Compiler Unsupported
 
 ContainerizedCPP supports only GNU and Clang compilers.
 
-### FastDDS Target Configure Fails
+### CycloneDDS-CXX Target Configure Fails
 
-If `container-debug` fails with missing `fastrtps`, rebuild the dev image so new
-FastDDS packages are present:
+If `debug-san` fails with missing `CycloneDDS-CXX` or `ddscxx`, rebuild the dev
+image so it's freshly built from source:
 
 ```bash
-docker build -t ContainerizedCPP-dev .
+docker build -t containerizedcpp-dev .
 ```

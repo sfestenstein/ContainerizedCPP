@@ -6,14 +6,14 @@
 # minimal Ubuntu runtime image.
 #
 # Prerequisite — build the dev image once (cached, rarely changes):
-#   docker build -t ContainerizedCPP-dev .
+#   docker build -t containerizedcpp-dev .
 #
 # Then build and run via Compose:
 #   docker compose -f deploy/docker-compose.yml up --build
 # =============================================================================
 
 # ---- Stage 1: Build the project using the dev image ------------------------
-FROM ContainerizedCPP-dev AS builder
+FROM containerizedcpp-dev AS builder
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -23,46 +23,41 @@ WORKDIR /workspace
 # Patch CycloneDDS C++ 0.10.5 headers for GCC 13+ / C++20 compatibility
 RUN bash deploy/fix-cyclonedds-headers.sh
 
-# Build only the targets needed for deployment (not tests/benchmarks)
-RUN cmake --preset container-release \
-    && cmake --build --preset container-release \
-       --target DDSPublisher DDSSubscriber Omniscope ZyrePublisher ZyreSubscriber \
-              GrpcServer GrpcClient
+# Build only the targets needed for deployment (not tests)
+RUN cmake --preset release \
+    && cmake --build --preset release \
+       --target OmniscopeDds RadarDDSWorkstation RadarDDSRadar
 
 # ---- Stage 2: Slim runtime image -------------------------------------------
 FROM ubuntu:24.04 AS runtime
 
 # Runtime dependencies for our shared libraries:
-#   libsystemd0  — required by CZMQ/Zyre (sd-bus integration)
-#   libssl3      — OpenSSL runtime for gRPC/Cyclone DDS transitive deps
-#   zlib1g       — compression runtime used by protobuf/gRPC transitive deps
+#   libssl3      — OpenSSL runtime for Cyclone DDS transitive deps
+#   zlib1g       — compression runtime used by transitive deps
 #   libstdc++6   — C++ standard library (already in base, listed for clarity)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
        ca-certificates \
-       libsystemd0 \
        libssl3 \
-         libfastcdr1t64 \
-         libfastrtps2.11t64 \
        zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
-# Shared libraries: third-party deps (cyclonedds, spdlog, zmq, etc.)
+# Shared libraries: source-built third-party deps (CycloneDDS-CXX, etc.)
 COPY --from=builder /usr/local/lib/lib*.so* /usr/local/lib/
 
-# Shared libraries: project's own (libCommonUtils.so, libPubSubLib.so)
-COPY --from=builder /workspace/build/container-release/lib/lib*.so* /usr/local/lib/
+# Shared libraries: apt-installed third-party deps not present in the slim
+# runtime base (spdlog, fmt, Cyclone DDS C library, iceoryx shared-memory libs)
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libspdlog.so* /usr/lib/x86_64-linux-gnu/libfmt.so* /usr/lib/x86_64-linux-gnu/libddsc.so* /usr/lib/x86_64-linux-gnu/libiceoryx_*.so* /usr/local/lib/
 
-# Application binaries (only the three we built)
-COPY --from=builder /workspace/build/container-release/bin/DDSPublisher   /usr/local/bin/
-COPY --from=builder /workspace/build/container-release/bin/DDSSubscriber  /usr/local/bin/
-COPY --from=builder /workspace/build/container-release/bin/Omniscope      /usr/local/bin/
-COPY --from=builder /workspace/build/container-release/bin/ZyrePublisher  /usr/local/bin/
-COPY --from=builder /workspace/build/container-release/bin/ZyreSubscriber /usr/local/bin/
-COPY --from=builder /workspace/build/container-release/bin/GrpcServer     /usr/local/bin/
-COPY --from=builder /workspace/build/container-release/bin/GrpcClient     /usr/local/bin/
+# Shared libraries: project's own (libCommonUtils.so)
+COPY --from=builder /workspace/build/release/lib/lib*.so* /usr/local/lib/
+
+# Application binaries
+COPY --from=builder /workspace/build/release/bin/OmniscopeDds       /usr/local/bin/
+COPY --from=builder /workspace/build/release/bin/RadarDDSWorkstation /usr/local/bin/
+COPY --from=builder /workspace/build/release/bin/RadarDDSRadar       /usr/local/bin/
 
 RUN ldconfig
 
 # Default: show what's available
-CMD ["bash", "-c", "echo 'Available: DDSPublisher, DDSSubscriber, Omniscope, ZyrePublisher, ZyreSubscriber, GrpcServer, GrpcClient'; exec bash"]
+CMD ["bash", "-c", "echo 'Available: OmniscopeDds, RadarDDSWorkstation, RadarDDSRadar'; exec bash"]

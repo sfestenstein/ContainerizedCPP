@@ -1,0 +1,20 @@
+/**
+ * @file TestMessage.idl
+ * @brief Minimal message type for exercising the generic DDSPublisher<T>/
+ *        DDSSubscriber<T> templates, independent of any application's
+ *        own message set.
+ */
+
+module dds_test
+{
+
+   @topic
+   struct TestMessage
+   {
+      @key string<64> id;
+      string<128> name;
+      double value;
+      long long timestamp_ms;
+   };
+
+};

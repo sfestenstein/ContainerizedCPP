@@ -17,6 +17,7 @@ module radar_demo
       ALERT_CRITICAL
    };
 
+   @topic
    struct RadarAlert
    {
       RadarMessageHeader header;

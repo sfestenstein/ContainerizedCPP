@@ -45,13 +45,13 @@ struct TopicEntry
  *    rQos << dds::core::policy::Reliability::Reliable();
  *
  *    CycloneDDS::DDSTopicConfig config({
- *       {"SensorTopic",  wQos, rQos},
- *       {"TrackTopic",   wQos, rQos},
+ *       {"RadarTrack",         wQos, rQos},
+ *       {"RadarComponentStatus", wQos, rQos},
  *    });
  *
- *    auto sensorEntry = config.getEntry("SensorTopic");
- *    CycloneDDS::DDSPublisher<dds_messages::SensorReading>  pub(0, sensorEntry);
- *    CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(0, sensorEntry);
+ *    auto entry = config.getEntry("RadarTrack");
+ *    CycloneDDS::DDSPublisher<radar_demo::RadarTrack>  pub(0, entry);
+ *    CycloneDDS::DDSSubscriber<radar_demo::RadarTrack> sub(0, entry);
  *
  *    pub.publish(msg);                       // topic known from entry
  *    sub.subscribe(handler);                 // topic known from entry

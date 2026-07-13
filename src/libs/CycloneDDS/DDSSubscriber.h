@@ -22,16 +22,23 @@ namespace CycloneDDS
  * @brief Generic single-topic DDS subscriber using Cyclone DDS.
  *
  * Constructed with a TopicEntry that defines the topic name and reader
- * QoS.  Call subscribe() with a handler, then start() to begin polling.
+ * QoS.  Call subscribe() with a handler, then start() to begin receiving.
+ *
+ * Delivery is event-driven rather than polled: the background thread
+ * blocks on a WaitSet attached to the reader's StatusCondition
+ * (data_available), so samples are picked up as soon as they arrive
+ * instead of on a fixed sleep interval. A GuardCondition on the same
+ * WaitSet lets stop() wake the thread immediately rather than waiting
+ * out a timeout.
  *
  * @tparam T The IDL-generated DDS data type to subscribe to.
  *
  * Usage:
  * @code
- *    CycloneDDS::TopicEntry entry{"SensorTopic", writerQos, readerQos};
- *    CycloneDDS::DDSSubscriber<dds_messages::SensorReading> sub(0, entry);
- *    sub.subscribe([](const dds_messages::SensorReading &msg) {
- *       std::cout << "Received: " << msg.sensor_id() << std::endl;
+ *    CycloneDDS::TopicEntry entry{"RadarTrack", writerQos, readerQos};
+ *    CycloneDDS::DDSSubscriber<radar_demo::RadarTrack> sub(0, entry);
+ *    sub.subscribe([](const radar_demo::RadarTrack &msg) {
+ *       std::cout << "Received: " << msg.track_id() << std::endl;
  *    });
  *    sub.start();
  *    // ... run until done ...
@@ -62,6 +69,7 @@ public:
       , _entry(std::move(entry))
       , _running(false)
    {
+      _waitSet.attach_condition(_stopGuard);
       GPINFO("DDSSubscriber created: domain={}, topic={}, name={}",
              domainId, _entry.topicName, participantName);
    }
@@ -80,8 +88,9 @@ public:
    /**
     * @brief Subscribe with a callback handler.
     *
-    * The reader is created using the QoS from the TopicEntry.
-    * Must be called before start().
+    * The reader is created using the QoS from the TopicEntry, and its
+    * StatusCondition is attached to the WaitSet so the background thread
+    * wakes as soon as data is available. Must be called before start().
     *
     * @param handler Callback invoked for each received sample
     */
@@ -91,11 +100,15 @@ public:
       _reader.emplace(_subscriber, topic, _entry.readerQos);
       _handler = std::move(handler);
 
+      _statusCondition.emplace(*_reader);
+      _statusCondition->enabled_statuses(dds::core::status::StatusMask::data_available());
+      _waitSet.attach_condition(*_statusCondition);
+
       GPINFO("DDSSubscriber: subscribed to topic '{}'", _entry.topicName);
    }
 
    /**
-    * @brief Start the polling thread for receiving messages.
+    * @brief Start the background thread that waits for and delivers messages.
     */
    void start()
    {
@@ -104,12 +117,12 @@ public:
          return; // Already running
       }
 
-      _pollThread = std::thread([this]() { pollLoop(); });
+      _pollThread = std::thread([this]() { waitLoop(); });
       GPINFO("DDSSubscriber: polling started");
    }
 
    /**
-    * @brief Stop the polling thread.
+    * @brief Stop the background thread.
     */
    void stop()
    {
@@ -118,10 +131,14 @@ public:
          return; // Already stopped
       }
 
+      // Wake the blocked wait() immediately rather than letting it run out
+      // a timeout.
+      _stopGuard.trigger_value(true);
       if (_pollThread.joinable())
       {
          _pollThread.join();
       }
+      _stopGuard.trigger_value(false);
       GPINFO("DDSSubscriber: polling stopped");
    }
 
@@ -150,10 +167,15 @@ public:
    }
 
 private:
-   void pollLoop()
+   void waitLoop()
    {
       while (_running.load())
       {
+         // Blocks until either the reader's StatusCondition signals
+         // data_available or stop() triggers _stopGuard -- no fixed
+         // polling interval, and no wasted wakeups when idle.
+         _waitSet.wait();
+
          if (_reader && _handler)
          {
             auto samples = _reader->take();
@@ -165,7 +187,6 @@ private:
                }
             }
          }
-         std::this_thread::sleep_for(std::chrono::milliseconds(1));
       }
    }
 
@@ -176,6 +197,10 @@ private:
    MessageHandler _handler;
    std::atomic<bool> _running;
    std::thread _pollThread;
+
+   dds::core::cond::WaitSet _waitSet;
+   dds::core::cond::GuardCondition _stopGuard;
+   std::optional<dds::core::cond::StatusCondition> _statusCondition;
 };
 
 } // namespace CycloneDDS

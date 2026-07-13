@@ -1,7 +1,10 @@
 # ContainerizedCPP
 
-A production-ready C++20 project template using CMake presets, containerized development,
-comprehensive tests, and CI automation.
+A C++20 DDS showcase built with CMake presets, containerized development,
+comprehensive tests, and CI automation. Fuses a web-based DDS traffic
+inspector with dynamic topic discovery, recording, and playback
+(OmniscopeDds) with a two-app QoS demonstration (RadarDDSDemo) — all on a
+single DDS implementation (Eclipse Cyclone DDS).
 
 ## Features
 
@@ -9,12 +12,12 @@ comprehensive tests, and CI automation.
 - CMake 3.25+ with preset-based workflows
 - Container-first dependency management
 - Google Test unit tests
-- Protocol Buffers + gRPC support
-- ZeroMQ/CZMQ/Zyre messaging
-- Eclipse Cyclone DDS integration
-- Optional FastDDS integration target for new apps
-- Omniscope web-based traffic inspector
-- VITA 49.2 codec utilities
+- Eclipse Cyclone DDS integration (sole DDS implementation), with an
+  event-driven (WaitSet-based) generic DDSSubscriber<T>
+- OmniscopeDds — web-based dynamic DDS topic discovery, live monitoring,
+  recording, and wire-level playback
+- RadarDDSDemo — two-app QoS profile demonstration (Best Effort vs Reliable,
+  Volatile vs TransientLocal, KeepLast vs KeepAll)
 - clang-format, clang-tidy, sanitizers, and coverage
 
 ## Quick Start
@@ -25,48 +28,46 @@ comprehensive tests, and CI automation.
 # 1) Open repository in VS Code
 # 2) Run: Dev Containers: Rebuild and Reopen in Container
 
-cmake --preset container-debug
-cmake --build --preset container-debug
-ctest --preset container-debug
+cmake --preset debug-san
+cmake --build --preset debug-san
+ctest --preset debug-san
 ```
 
-### Additional Container Presets
+### Release Build
 
 ```bash
-cmake --preset container-release
-cmake --build --preset container-release
+cmake --preset release
+cmake --build --preset release
 ```
 
 ### Coverage
 
 ```bash
-cmake --preset container-coverage
-cmake --build --preset container-coverage
-ctest --preset container-coverage
-cmake --build --preset container-coverage --target coverage
+cmake --preset debug-coverage
+cmake --build --preset debug-coverage
+ctest --preset debug-coverage
+cmake --build --preset debug-coverage --target coverage
 ```
 
 Coverage is primarily intended for CI or advanced validation flows. The day-to-day
-developer path is container-debug/container-release.
+developer path is debug-san/release.
 
 ## Running Applications
 
 ```bash
-./build/container-debug/bin/ZyreSubscriber
-./build/container-debug/bin/ZyrePublisher
-./build/container-debug/bin/DDSSubscriber
-./build/container-debug/bin/DDSPublisher
-./build/container-debug/bin/Omniscope
+./build/debug-san/bin/OmniscopeDds 0 8080
+./build/debug-san/bin/RadarDDSRadar 0
+./build/debug-san/bin/RadarDDSWorkstation 0
 ```
 
 ## Presets
 
-| Preset               | Purpose                             |
-| -------------------- | ----------------------------------- |
-| `container-debug`    | Container development build         |
-| `container-release`  | Container release build             |
-| `container-coverage` | Container coverage-instrumented run |
-| `ci-linux`           | CI build with coverage              |
+| Preset            | Purpose                             |
+| ----------------- | ------------------------------------ |
+| `debug-san`       | Debug build with ASan/UBSan          |
+| `release`         | Release build                        |
+| `debug-coverage`  | Debug build with coverage instrumentation |
+| `ci-linux`        | CI build with coverage                |
 
 ## CMake Options
 

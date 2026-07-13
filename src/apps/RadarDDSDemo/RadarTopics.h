@@ -1,7 +1,7 @@
 #ifndef RADARTOPICS_H_
 #define RADARTOPICS_H_
 
-#include "FastDDS/FastDDSTopicConfig.h"
+#include "CycloneDDS/DDSTopicConfig.h"
 
 #include <string_view>
 
@@ -16,13 +16,11 @@ inline constexpr std::string_view COMPONENT_STATUS_TOPIC = "RadarComponentStatus
 inline constexpr std::string_view RADAR_ALERT_TOPIC = "RadarAlert";
 
 /**
- * @brief Builds the FastDDS::FastDDSTopicConfig for all 5 RadarDDSDemo topics.
+ * @brief Builds the CycloneDDS::DDSTopicConfig for all 5 RadarDDSDemo topics.
  *
  * Every topic sets reliability, durability, and history explicitly on BOTH
- * the writer and reader QoS — Fast DDS's defaults are asymmetric (writer
- * defaults to Reliable+TransientLocal, reader defaults to BestEffort+
- * Volatile), so relying on defaults for either side would silently produce
- * a different effective QoS than intended.
+ * the writer and reader QoS so that RxO (Request-vs-Offered) compatibility
+ * is guaranteed rather than relying on either side's defaults.
  *
  * QoS profile per topic (see RadarDDSDemo's plan/README for the reasoning):
  *   - RadarCommand         : Reliable,    Volatile,      KeepLast(10)
@@ -36,10 +34,10 @@ class RadarTopics
 public:
    RadarTopics();
 
-   [[nodiscard]] const FastDDS::FastDDSTopicConfig &config() const;
+   [[nodiscard]] const CycloneDDS::DDSTopicConfig &config() const;
 
 private:
-   FastDDS::FastDDSTopicConfig _config;
+   CycloneDDS::DDSTopicConfig _config;
 };
 
 } // namespace RadarDemo

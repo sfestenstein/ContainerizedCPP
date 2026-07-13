@@ -4,71 +4,56 @@ This document describes the architecture and design decisions of the Containeriz
 
 ## Overview
 
-ContainerizedCPP is designed as a production-ready C++ project template that demonstrates modern C++ best practices, build system configuration, and software engineering patterns. It includes multiple messaging libraries (Zyre, UDP multicast, DDS), a web-based IPC traffic monitor, a VITA 49.2 signal data codec, and Protocol Buffers for serialization.
+ContainerizedCPP is a focused showcase of DDS tooling: a web-based DDS
+traffic inspector with dynamic topic discovery, recording, and playback
+(OmniscopeDds), plus a two-app QoS demonstration (RadarDDSDemo). Everything
+runs on a single DDS implementation — Eclipse Cyclone DDS.
 
 ## Architecture
 
 ### Component Diagram
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                              Applications                                     │
-│  ┌──────────────┐ ┌──────────────┐ ┌───────────────┐ ┌───────────────────┐   │
-│  │ ZyrePublisher│ │ZyreSubscriber│ │ HighBandwidth │ │  DDS Publisher /  │   │
-│  │              │ │              │ │   Pub / Sub   │ │  DDS Subscriber   │   │
-│  └──────┬───────┘ └──────┬───────┘ └──────┬────────┘ └────────┬──────────┘   │
-│         │                │                │                   │              │
-│  ┌──────────────────┐  ┌────────────────────┐  ┌─────────────────────────┐   │
-│  │ Vita49RoundTrip  │  │ Vita49PerfBenchmark│  │    Vita49FileCodec     │   │
-│  └────────┬─────────┘  └─────────┬──────────┘  └───────────┬─────────────┘   │
-│           │                      │                         │                 ││  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                        Omniscope                                         │   │
-│  │  ┌───────────────┐  ┌───────────────┐  ┌─────────────────────────────┐     │   │
-│  │  │ OmniscopeApp  │  │PlaybackEngine│  │ ITransport (DDS, Zyre…) │     │   │
-│  │  │ (Crow server) │  │ (recording)  │  │ TransportDds, TransportZyre│  │   │
-│  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘     │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                               │├───────────┴──────────────────────┴─────────────────────────┴─────────────────┤
-│                                Libraries                                      │
-│  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │                          PubSub Library                                  │  │
-│  │  ┌───────────────┐  ┌───────────────┐  ┌─────────────────────────────┐  │  │
-│  │  │   ZyreNode    │  │ ZyrePublisher │  │ HighBandwidthPublisher      │  │  │
-│  │  │   (base)      │  │ ZyreSubscriber│  │ HighBandwidthSubscriber     │  │  │
-│  │  └───────────────┘  └───────────────┘  └─────────────────────────────┘  │  │
-│  └─────────────────────────────────────────────────────────────────────────┘  │
-│  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │                        CycloneDDS Library (STATIC)                       │  │
-│  │  ┌────────────────┐  ┌────────────────┐  ┌─────────────────────────┐    │  │
-│  │  │ DDSTopicConfig │  │ DDSPublisher<T>│  │ DDSSubscriber<T>        │    │  │
-│  │  │ (QoS registry) │  │ (header-only)  │  │ (header-only, polling)  │    │  │
-│  │  └────────────────┘  └────────────────┘  └─────────────────────────┘    │  │
-│  │  ┌────────────────────────────────────────┐                              │  │
-│  │  │ DDSMessages (IDL-generated C++ types)  │                              │  │
-│  │  └────────────────────────────────────────┘                              │  │
-│  └─────────────────────────────────────────────────────────────────────────┘  │
-│  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │                        Vita49_2 Library                                   │  │
-│  │  ┌──────────────┐  ┌──────────────────┐  ┌─────────────────────────┐    │  │
-│  │  │ PacketHeader │  │ SignalDataPacket │  │ ContextPacket           │    │  │
-│  │  │              │  │                  │  │                         │    │  │
-│  │  └──────────────┘  └──────────────────┘  └─────────────────────────┘    │  │
-│  │  ┌──────────────┐  ┌──────────────────┐                                  │  │
-│  │  │ Vita49Codec  │  │ ByteSwap        │                                  │  │
-│  │  └──────────────┘  └──────────────────┘                                  │  │
-│  └─────────────────────────────────────────────────────────────────────────┘  │
-│  ┌─────────────────┐                    ┌─────────────────┐                   │
-│  │   Proto Lib     │                    │  CommonUtils    │                   │
-│  │   (protobuf)    │                    │  (utilities)    │                   │
-│  └─────────────────┘                    └─────────────────┘                   │
-│                                                                               │
-├───────────────────────────────────────────────────────────────────────────────┤
-│                          External Dependencies                                │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐  │
-│  │ spdlog │ │protobuf│ │ ZeroMQ │ │  CZMQ  │ │  Zyre  │ │Cyclone │ │  Crow  │  │
-│  │        │ │        │ │ cppzmq │ │        │ │        │ │  DDS   │ │        │  │
-│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘  │
-└───────────────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│                              Applications                             │
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │                          OmniscopeDds                             │  │
+│  │  OmniscopeApp (Crow HTTP/WS server) + PlaybackEngine + web UI;   │  │
+│  │  TransportDds discovers topics dynamically via                   │  │
+│  │  BuiltinTopicReader + BlobSertype (no fixed topic set), and      │  │
+│  │  replays recorded raw CDR bytes verbatim for playback            │  │
+│  └─────────────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │                     RadarDDSDemo (Radar / Workstation)            │  │
+│  │  Own IDL (5 topics), per-topic QoS profile demonstration          │  │
+│  │  (Reliable/BestEffort, Volatile/TransientLocal, KeepLast/KeepAll)│  │
+│  └─────────────────────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                Libraries                              │
+│  ┌─────────────────────────────────────────────────────────────────┐  │
+│  │                    CycloneDDS Library (STATIC)                    │  │
+│  │  ┌────────────────┐  ┌────────────────┐  ┌─────────────────┐    │  │
+│  │  │ DDSTopicConfig │  │ DDSPublisher<T>│  │ DDSSubscriber<T>│    │  │
+│  │  │ (QoS registry) │  │ (header-only)  │  │(header-only,    │    │  │
+│  │  │                │  │                │  │ WaitSet-driven) │    │  │
+│  │  └────────────────┘  └────────────────┘  └─────────────────┘    │  │
+│  │  ┌────────────────────┐  Type-agnostic: each app supplies its    │  │
+│  │  │ BlobSertype /       │  own IDL and generates its own message  │  │
+│  │  │ BuiltinTopicReader  │  types (see RadarDDSDemo, DDSTests)     │  │
+│  │  │ (OmniscopeDds-only) │                                         │  │
+│  │  └────────────────────┘                                          │  │
+│  └─────────────────────────────────────────────────────────────────┘  │
+│  ┌─────────────────┐                                                  │
+│  │   CommonUtils   │                                                  │
+│  │  (logging, timers, utilities)                                     │
+│  └─────────────────┘                                                  │
+├───────────────────────────────────────────────────────────────────────┤
+│                          External Dependencies                        │
+│  ┌────────┐        ┌──────────┐        ┌────────┐                    │
+│  │ spdlog │        │ Cyclone  │        │  Crow  │                    │
+│  │        │        │   DDS    │        │        │                    │
+│  └────────┘        └──────────┘        └────────┘                    │
+└───────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Libraries
@@ -98,162 +83,52 @@ The CommonUtils library provides reusable components for common tasks:
   - Template-based data processing
   - Flexible data transformation support
 
-#### PubSub Library (`src/libs/PubSub/`)
-
-The PubSub library provides two messaging patterns:
-
-**Zyre-based Messaging** (peer-to-peer discovery):
-
-- **ZyreNode**: Base class for Zyre nodes:
-  - Automatic peer discovery via UDP beaconing
-  - Node lifecycle management (start/stop)
-  - Thread-safe operation
-
-- **ZyrePublisher**: Publishes messages via Zyre:
-  - Inherits from ZyreNode
-  - Publishes protobuf messages to topics
-  - Automatic peer discovery
-
-- **ZyreSubscriber**: Subscribes to messages via Zyre:
-  - Inherits from ZyreNode
-  - Topic-based subscription with callbacks
-  - Background receive thread
-
-**High-Bandwidth Messaging** (UDP multicast):
-
-- **HighBandwidthPublisher**: Fast UDP multicast publisher:
-  - Raw UDP multicast for minimal overhead
-  - Automatic message fragmentation for large payloads
-  - Fire-and-forget semantics (unreliable but fast)
-  - Ideal for sensor data, telemetry, video frames
-
-- **HighBandwidthSubscriber**: Fast UDP multicast subscriber:
-  - Joins multicast group for receiving
-  - Automatic fragment reassembly
-  - Configurable reassembly timeout
-  - Thread-safe subscription (can subscribe before or after start)
-
-#### Proto Library (`src/libs/proto/`)
-
-The protocol buffer library compiles `.proto` files from `src/libs/proto/proto-messages/` into C++ classes:
-
-- **sensor_reading.proto**: Individual sensor readings with metadata and location
-- **sensor_data_batch.proto**: Batched sensor readings
-- **command.proto**: Command messages for RPC
-- **command_response.proto**: Command response messages
-- **application_config.proto**: Application configuration structures
-- **message_header.proto**: Common message header with timestamp, source, and sequence
-
-The library also provides:
-
-- **ProtoTopicConfig**: Constexpr `TopicId` enum with compile-time string registry mapping topic IDs to protobuf type names
-- **ProtoJsonDispatch**: Runtime dispatch between `TopicId` and concrete protobuf types, providing `toJson()`, `fromJson()`, `fromJsonToMessage()`, and `createMessage()` factory functions
-
 #### CycloneDDS Library (`src/libs/CycloneDDS/`)
 
-The CycloneDDS library provides topic-based DDS publish-subscribe via Eclipse Cyclone DDS. The CMake target (`CycloneDDSLib`) is a STATIC library that wraps header-only template publishers/subscribers with generated IDL types and JSON helpers.
+The CycloneDDS library provides topic-based DDS publish-subscribe via Eclipse Cyclone DDS. The CMake target (`CycloneDDSLib`) is a STATIC library of header-only template publishers/subscribers plus dynamic-discovery support. It is type-agnostic — it ships no message IDL of its own; each app supplies its own IDL and generates its own message types via `idlcxx_generate()` (see `src/apps/RadarDDSDemo/CMakeLists.txt` or `tests/DDSTests/CMakeLists.txt` for the pattern).
 
 - **DDSTopicConfig**: Central registry mapping topic names to `DataWriterQos` and `DataReaderQos`, guaranteeing RxO (Request-vs-Offered) compatibility between publishers and subscribers.
 
-- **CycloneDDSConfig**: DDS domain and participant configuration.
-
 - **DDSPublisher\<T\>**: Template publisher that lazily creates `DataWriter` instances per topic. QoS is looked up from `DDSTopicConfig` automatically.
 
-- **DDSSubscriber\<T\>**: Template subscriber with a background polling thread. Subscribes to topics with user callbacks; reader QoS is looked up from `DDSTopicConfig`.
+- **DDSSubscriber\<T\>**: Template subscriber with a background thread that delivers samples event-driven rather than polled: it blocks on a `dds::core::cond::WaitSet` attached to the reader's `StatusCondition` (`data_available`), so it wakes immediately when a sample arrives instead of on a fixed sleep interval. A `GuardCondition` on the same WaitSet lets `stop()` wake the thread immediately too, rather than waiting out a timeout.
 
-- **DDSMessages**: IDL-generated C++ types from `idl/` directory (SensorData, Command, TrackData, MessageHeader), compiled via `IDLCXX_GENERATE()`.
-
-- **DdsJsonHelpers.h**: Auto-generated (by `generate_dds_json_helpers.py`) pretty-print and JSON conversion helpers for all IDL types. Generated into the build directory at configure time.
-
-#### Vita49_2 Library (`src/libs/Vita49_2/`)
-
-The Vita49_2 library implements the VITA 49.2 standard for signal data and context packets:
-
-- **PacketHeader**: Parses and serializes VITA 49 packet headers (packet type, class/stream identifiers, size)
-- **SignalDataPacket**: Signal data packet codec (IF data, extension data)
-- **ContextPacket**: Context packet codec (metadata about signal acquisition parameters)
-- **Vita49Codec**: High-level codec facade for encoding/decoding complete VITA 49 packets
-- **Vita49Types**: Common type definitions and enumerations for the VITA 49 standard
-- **ByteSwap**: Byte-order utilities for network/host conversion
+- **BlobSertype** / **BuiltinTopicReader**: Support dynamic, type-unaware topic discovery and raw-CDR capture/replay — used only by OmniscopeDds. `BuiltinTopicReader` polls CycloneDDS's built-in `DCPSPublication` topic to discover active publishers/topics at runtime; `BlobSertype` is a custom `ddsi_sertype` that accepts arbitrary CDR bytes without a compiled-in IDL type, letting OmniscopeDds subscribe to (and publish onto) topics it has no generated type for.
 
 ### Applications
 
-#### ZyrePublisher (`src/apps/TestApps/ZyrePublisherTest.cpp`)
+#### OmniscopeDds (`src/apps/OmniscopeDds/`)
 
-Demonstrates:
-- Zyre peer-to-peer publishing
-- Protocol buffer serialization (SensorReading, SensorDataBatch, Command)
-- Periodic message publishing
-- GeneralLogger usage
-
-#### ZyreSubscriber (`src/apps/TestApps/ZyreSubscriberTest.cpp`)
-
-Demonstrates:
-- Zyre peer-to-peer subscription
-- Protocol buffer deserialization
-- Topic-based message handling
-- Formatted logging with spdlog
-
-#### HighBandwidthPublisher (`src/apps/TestApps/HighBandwidthPublisherTester.cpp`)
-
-Demonstrates:
-- High-frequency UDP multicast publishing
-- Large message fragmentation
-- Sensor data streaming
-
-#### HighBandwidthSubscriber (`src/apps/TestApps/HighBandwidthSubscriberTester.cpp`)
-
-Demonstrates:
-- UDP multicast subscription
-- Fragment reassembly
-- High-throughput message reception
-
-#### DDSPublisher (`src/apps/TestApps/DDSPublisherTest.cpp`)
-
-Demonstrates:
-- Eclipse Cyclone DDS topic-based publishing
-- DDSTopicConfig with Reliable and BestEffort QoS
-- Publishing IDL-defined SensorReading and TrackUpdate messages
-
-#### DDSSubscriber (`src/apps/TestApps/DDSSubscriberTest.cpp`)
-
-Demonstrates:
-- Eclipse Cyclone DDS topic-based subscription
-- Shared DDSTopicConfig for QoS alignment with publisher
-- Callback-based message handling with background polling
-
-#### Omniscope (`src/apps/Omniscope/`)
-
-A web-based traffic inspector for IPC pub/sub transports:
-- **Transport abstraction** — `ITransport` interface decouples the monitor from any specific middleware; ships with `TransportDds` (Cyclone DDS) and `TransportZyre` (Zyre + protobuf)
+A web-based DDS traffic inspector with dynamic topic discovery, recording, and playback:
+- **ITransport** — abstract transport interface decoupling the monitor from any specific DDS implementation; the seam a future richer DDS transport could plug into without touching `OmniscopeApp`
 - **OmniscopeApp** — orchestrates transports, Crow HTTP/WebSocket server, recording, and playback (pImpl pattern)
 - **PlaybackEngine** — loads `.dat` files and replays them in a background thread with original inter-message timing (capped at 5 s per gap), publishing via a routing callback that dispatches to the originating transport
-- **TransportDds** — concrete transport using Eclipse Cyclone DDS; pImpl hides all DDS headers
-- **TransportZyre** — concrete transport using Zyre with protobuf serialization; pImpl hides Zyre/proto headers; uses `ProtoJsonDispatch` for binary↔JSON conversion
-- **CrowCompat.h** — C++20 / libc++ compatibility shim (atomic `operator<<`) for Crow 1.3.x
-- **Embedded HTML UI** — dark-theme 3-pane interface (Topics / Messages / Detail) served at `/`, with WebSocket streaming, recording controls, load/playback with progress bar, and topics grouped by transport with colored badges
+- **TransportDds** — joins a CycloneDDS domain and discovers *any* active topic at runtime via `CycloneDDS::BuiltinTopicReader`, rather than a fixed, compiled-in topic set. Subscribes to arbitrary topics using `CycloneDDS::BlobSertype`, delivering raw CDR bytes hex-encoded as JSON (`{"raw_cdr":"...","byte_count":N,"type_name":"..."}`) — no IDL types need to be known ahead of time. Fires a topics-changed callback when publishers appear or disappear on the domain.
+- **Embedded HTML UI** — dark-theme 3-pane interface (Topics / Messages / Detail) served at `/`, with WebSocket streaming, recording controls, and load/playback with a progress bar
+
+**Playback / replay**: `publishFromJson()` replays a recorded message by wire-level byte replay rather than general JSON→CDR encoding — since the captured JSON already contains the exact raw CDR bytes (`raw_cdr`), there's no need to re-derive them from a compiled type. It hex-decodes `raw_cdr`, lazily creates a `BlobSertype`-based writer for the topic (Reliable/Volatile/KeepLast(1) QoS — Reliable is compatible with both Reliable- and BestEffort-requesting readers per DDS RxO rules), builds a `ddsi_serdata` from the decoded bytes via `ddsi_serdata_from_ser_iov()`, and publishes it with `dds_writecdr()`. Verified end-to-end: an independent subscriber observed the replayed bytes match the recorded ones exactly. One caveat inherent to DDS, not this implementation: a sample published immediately after a brand-new writer is created can be lost if the reader hasn't finished matching yet — this only affects the very first replayed sample after a topic's writer is first created, not steady-state playback.
 
 Usage:
 ```bash
-./build/container-debug/bin/Omniscope [domain_id] [http_port] [zyre_namespace]
-# Open http://localhost:8080
+./build/debug-san/bin/OmniscopeDds [domain_id] [http_port]
+# Open http://localhost:8080 (default port)
 ```
 
-#### Vita49RoundTripTest (`src/apps/TestApps/Vita49RoundTripTest.cpp`)
+#### RadarDDSDemo (`src/apps/RadarDDSDemo/`)
 
-Demonstrates:
-- Round-trip encode/decode of VITA 49.2 signal data packets
-- Verification of codec correctness
+A two-app demonstration of Cyclone DDS QoS profiles, with its own IDL (`RadarMessageHeader`, `Command`, `CommandStatus`, `RadarTrack`, `ComponentStatus`, `RadarAlert`):
 
-#### Vita49PerfBenchmark (`src/apps/Tools/Vita49PerfBenchmark.cpp`)
+- **RadarDDSRadar** (`Radar.cpp`) — simulates a radar sensor node: publishes `RadarTrack` (Best Effort/Volatile/KeepLast(1)), `ComponentStatus` (Reliable/TransientLocal/KeepLast(1), periodic), and `RadarAlert` (Reliable/TransientLocal/KeepAll, rare); subscribes to `Command` and replies with `CommandStatus`. A `--stress` flag fires an unthrottled burst of `RadarTrack` samples at startup to force observable Best-Effort drops.
+- **RadarDDSWorkstation** (`Workstation.cpp`) — simulates an operator workstation: sends `Command` periodically, subscribes to `CommandStatus`/`RadarTrack`/`ComponentStatus`/`RadarAlert`, and demonstrates the practical effect of each QoS profile — tracking per-track sequence gaps for Best-Effort drops, and tagging the first `ComponentStatus`/`RadarAlert` sample as a "late-joiner snapshot" to show TransientLocal durability.
+- **RadarTopics** — builds a `CycloneDDS::DDSTopicConfig` registry for the 5 topics with explicit per-topic QoS.
 
-Demonstrates:
-- Performance benchmarking of VITA 49.2 codec operations
+OmniscopeDds's dynamic discovery picks up RadarDDSDemo's topics automatically with zero extra code, which is the natural way to pair the two for a demo.
 
-#### Vita49FileCodec (`src/apps/Tools/Vita49FileCodec.cpp`)
-
-Demonstrates:
-- File-based VITA 49.2 packet generation, inspection, and round-trip testing
+Usage:
+```bash
+./build/debug-san/bin/RadarDDSRadar [domain_id] [--stress]
+./build/debug-san/bin/RadarDDSWorkstation [domain_id]
+```
 
 ## Design Decisions
 

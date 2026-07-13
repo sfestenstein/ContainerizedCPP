@@ -14,20 +14,15 @@
  */
 
 #include "CommonUtils/GeneralLogger.h"
-#include "FastDDS/FastDDSPublisher.h"
-#include "FastDDS/FastDDSSubscriber.h"
+#include "CycloneDDS/DDSPublisher.h"
+#include "CycloneDDS/DDSSubscriber.h"
 #include "RadarTopics.h"
 
-#include "Command.h"
-#include "CommandPubSubTypes.h"
-#include "CommandStatus.h"
-#include "CommandStatusPubSubTypes.h"
-#include "ComponentStatus.h"
-#include "ComponentStatusPubSubTypes.h"
-#include "RadarAlert.h"
-#include "RadarAlertPubSubTypes.h"
-#include "RadarTrack.h"
-#include "RadarTrackPubSubTypes.h"
+#include "Command.hpp"
+#include "CommandStatus.hpp"
+#include "ComponentStatus.hpp"
+#include "RadarAlert.hpp"
+#include "RadarTrack.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -39,15 +34,10 @@
 #include <vector>
 
 using radar_demo::Command;
-using radar_demo::CommandPubSubType;
 using radar_demo::CommandStatus;
-using radar_demo::CommandStatusPubSubType;
 using radar_demo::ComponentStatus;
-using radar_demo::ComponentStatusPubSubType;
 using radar_demo::RadarAlert;
-using radar_demo::RadarAlertPubSubType;
 using radar_demo::RadarTrack;
-using radar_demo::RadarTrackPubSubType;
 
 static std::atomic<bool> isRunning{true};
 void signalHandler(int)
@@ -118,27 +108,27 @@ int main(int argc, char *argv[])
    // Constructed and warmed up before subscribing to Command, so the real
    // ack path in the Command listener callback never triggers lazy
    // Topic/DataWriter creation from within that callback.
-   FastDDS::FastDDSPublisher<CommandStatus, CommandStatusPubSubType> commandStatusPub(
+   CycloneDDS::DDSPublisher<CommandStatus> commandStatusPub(
       domainId, config.getEntry(std::string(RadarDemo::COMMAND_STATUS_TOPIC)), "RadarCommandStatusPub");
    {
       CommandStatus startup;
       startup.header().sender_id("Radar");
       startup.header().timestamp_ns(nowNs());
       startup.command_id("STARTUP");
-      startup.result(radar_demo::CMDSTATUS_ACCEPTED);
+      startup.result(radar_demo::CommandResult::CMDSTATUS_ACCEPTED);
       startup.detail("Radar online");
       commandStatusPub.publish(startup);
       GPINFO("[CommandStatus] writer warmed up (Radar online)");
    }
 
-   FastDDS::FastDDSPublisher<RadarTrack, RadarTrackPubSubType> trackPub(
+   CycloneDDS::DDSPublisher<RadarTrack> trackPub(
       domainId, config.getEntry(std::string(RadarDemo::RADAR_TRACK_TOPIC)), "RadarTrackPub");
-   FastDDS::FastDDSPublisher<ComponentStatus, ComponentStatusPubSubType> componentPub(
+   CycloneDDS::DDSPublisher<ComponentStatus> componentPub(
       domainId, config.getEntry(std::string(RadarDemo::COMPONENT_STATUS_TOPIC)), "RadarComponentStatusPub");
-   FastDDS::FastDDSPublisher<RadarAlert, RadarAlertPubSubType> alertPub(
+   CycloneDDS::DDSPublisher<RadarAlert> alertPub(
       domainId, config.getEntry(std::string(RadarDemo::RADAR_ALERT_TOPIC)), "RadarAlertPub");
 
-   FastDDS::FastDDSSubscriber<Command, CommandPubSubType> commandSub(
+   CycloneDDS::DDSSubscriber<Command> commandSub(
       domainId, config.getEntry(std::string(RadarDemo::COMMAND_TOPIC)), "RadarCommandSub");
    commandSub.subscribe(
       [&commandStatusPub](const Command &cmd)
@@ -150,10 +140,11 @@ int main(int argc, char *argv[])
          status.header().sender_id("Radar");
          status.header().timestamp_ns(nowNs());
          status.command_id(cmd.command_id());
-         status.result(radar_demo::CMDSTATUS_ACCEPTED);
+         status.result(radar_demo::CommandResult::CMDSTATUS_ACCEPTED);
          status.detail("Command executed");
          commandStatusPub.publish(status);
       });
+   commandSub.start();
 
    std::random_device rd;
    std::mt19937 gen(rd());
@@ -182,7 +173,7 @@ int main(int argc, char *argv[])
          msg.elevation_deg(t.elevation_deg);
          msg.radial_velocity_mps(jitter(gen) * 50.0);
          msg.confidence(0.9);
-         msg.status(radar_demo::TRACK_UPDATED);
+         msg.status(radar_demo::TrackState::TRACK_UPDATED);
          msg.sequence_number(t.sequenceNumber++);
 
          trackPub.publish(msg);
@@ -226,7 +217,7 @@ int main(int argc, char *argv[])
             cs.header().sender_id("Radar");
             cs.header().timestamp_ns(nowNs());
             cs.component_id(componentId);
-            cs.health(radar_demo::HEALTH_NOMINAL);
+            cs.health(radar_demo::ComponentHealth::HEALTH_NOMINAL);
             cs.temperature_c(35.0 + jitter(gen) * 5.0);
             cs.voltage_v(28.0 + jitter(gen) * 0.5);
             cs.detail("nominal");
@@ -242,7 +233,7 @@ int main(int argc, char *argv[])
          alert.header().sender_id("Radar");
          alert.header().timestamp_ns(nowNs());
          alert.alert_id("alert-" + std::to_string(alertSequence++));
-         alert.severity(radar_demo::ALERT_WARNING);
+         alert.severity(radar_demo::AlertSeverity::ALERT_WARNING);
          alert.component_id("cooling");
          alert.message("Simulated cooling temperature spike");
          alertPub.publish(alert);

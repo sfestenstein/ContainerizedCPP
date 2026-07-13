@@ -4,27 +4,28 @@
 # Three services sharing a DDS domain on a Docker bridge network.
 # Each container runs one process — the core microservice pattern.
 #
-# ┌─────────────────────────────────────────────────────┐
-# │  Docker bridge network (dds-net)                    │
-# │                                                     │
-# │  ┌──────────────┐    DDS     ┌──────────────────┐   │
-# │  │ DDSPublisher  │──────────▶│  DDSSubscriber    │   │
-# │  │ SensorTopic   │           │  (logs messages)  │   │
-# │  │ TrackTopic    │           └──────────────────┘   │
-# │  │ @ 10 Hz       │    DDS     ┌──────────────────┐   │
-# │  └──────────────┘──────────▶│  Omniscope         │   │
-# │                              │  :8080 (HTTP/WS)  │──┼──▶ Browser
-# │                              └──────────────────┘   │
-# └─────────────────────────────────────────────────────┘
+# ┌─────────────────────────────────────────────────────────────┐
+# │  Docker bridge network (dds-net)                            │
+# │                                                              │
+# │  ┌──────────────────┐    DDS     ┌──────────────────────┐   │
+# │  │ radar-radar       │──────────▶│  radar-workstation    │   │
+# │  │ RadarTrack        │           │  (sends Command,      │   │
+# │  │ ComponentStatus   │           │   logs QoS effects)   │   │
+# │  │ RadarAlert        │           └──────────────────────┘   │
+# │  └──────────────────┘    DDS     ┌──────────────────────┐   │
+# │           └───────────────────▶│  omniscope-dds         │   │
+# │                                 │  :8080 (HTTP/WS)      │──┼──▶ Browser
+# │                                 └──────────────────────┘   │
+# └─────────────────────────────────────────────────────────────┘
 #
 # Usage:
 #   1. Build the dev base image (one-time, from repo root):
-#        docker build -t ContainerizedCPP-dev .
+#        docker build -t containerizedcpp-dev .
 #
 #   2. Build and start the services:
 #        docker compose -f deploy/docker-compose.yml up --build
 #
-#   3. Open Omniscope in your browser:
+#   3. Open OmniscopeDds in your browser:
 #        http://localhost:8080
 #
 #   4. Stop everything:
@@ -42,7 +43,7 @@ x-common: &common
   build:
     context: ..
     dockerfile: deploy/Dockerfile
-  image: ContainerizedCPP-deploy
+  image: containerizedcpp-deploy
   networks:
     - dds-net
   environment:
@@ -57,49 +58,43 @@ x-common: &common
 # The services — each container runs exactly ONE process (microservice pattern)
 # ---------------------------------------------------------------------------
 services:
-  # Service 1: Publishes DDS SensorReading + TrackUpdate at 10 Hz
-  dds-publisher:
+  # Service 1: Radar sensor node — publishes RadarTrack (Best Effort),
+  # ComponentStatus and RadarAlert (both TransientLocal), replies to Command
+  radar-radar:
     <<: *common
-    container_name: dds-publisher
-    command: ["DDSPublisher", "0"]
+    container_name: radar-radar
+    command: ["RadarDDSRadar", "0"]
 
-  # Service 2: Subscribes to and logs all DDS messages
-  dds-subscriber:
+  # Service 2: Operator workstation — sends Command, subscribes to the
+  # radar's topics and logs the practical effect of each QoS profile
+  radar-workstation:
     <<: *common
-    container_name: dds-subscriber
-    command: ["DDSSubscriber", "0"]
-    # Wait for publisher to start (ordering hint, not a readiness guarantee)
+    container_name: radar-workstation
+    command: ["RadarDDSWorkstation", "0"]
+    # Wait for the radar to start (ordering hint, not a readiness guarantee)
     depends_on:
-      - dds-publisher
+      - radar-radar
 
-  zyre-publisher:
+  # Service 3: Web-based DDS traffic inspector with dynamic topic discovery,
+  # recording, and playback — discovers and displays whatever topics are
+  # live on the domain; the only externally-exposed service
+  omniscope-dds:
     <<: *common
-    container_name: zyre-publisher
-    command: ["ZyrePublisher", "0"]
-
-  zyre-subscriber:
-    <<: *common
-    container_name: zyre-subscriber
-    command: ["ZyreSubscriber", "0"]
-
-  # Service 3: Web-based traffic inspector — the only externally-exposed service
-  omniscope:
-    <<: *common
-    container_name: omniscope
-    command: ["Omniscope", "0", "8080"]
+    container_name: omniscope-dds
+    command: ["OmniscopeDds", "0", "8080"]
     ports:
       # HOST:CONTAINER — maps host port 8080 to the container's port 8080
-      # This is what lets your browser reach Omniscope from outside Docker
+      # This is what lets your browser reach OmniscopeDds from outside Docker
       - "8080:8080"
     depends_on:
-      - dds-publisher
+      - radar-radar
 
 # ---------------------------------------------------------------------------
 # Networks
 # ---------------------------------------------------------------------------
 # A user-defined bridge network. All containers on this network can reach
 # each other by container name (Docker's built-in DNS). This is how the
-# cyclonedds.xml peer list ("dds-publisher", "dds-subscriber", "omniscope")
+# cyclonedds.xml peer list ("radar-radar", "radar-workstation", "omniscope-dds")
 # resolves to actual IP addresses.
 # ---------------------------------------------------------------------------
 networks:

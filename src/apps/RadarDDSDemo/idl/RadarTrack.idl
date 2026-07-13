@@ -18,6 +18,7 @@ module radar_demo
       TRACK_DROPPED
    };
 
+   @topic
    struct RadarTrack
    {
       RadarMessageHeader header;

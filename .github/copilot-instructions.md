@@ -4,12 +4,14 @@ This document provides context and guidelines for GitHub Copilot when working wi
 
 ## Project Overview
 
-ContainerizedCPP is a C++20 starter, containerized project template using:
+ContainerizedCPP is a C++20 DDS showcase — a web-based DDS traffic inspector
+with dynamic topic discovery, recording, and playback (OmniscopeDds) plus a
+two-app QoS demonstration (RadarDDSDemo), all on a single DDS implementation.
 - **Build System**: CMake 3.25+ with presets
 - **Dependency Management**: Container/system packages
 - **Compiler**: GCC 13+ or Clang 15+ (Linux container)
 - **Testing**: Google Test
-- **Dependencies**: spdlog, protobuf, ZeroMQ (cppzmq), CZMQ, Zyre, Eclipse Cyclone DDS, Crow
+- **Dependencies**: spdlog, Eclipse Cyclone DDS, Crow
 
 ## Project Structure
 
@@ -17,72 +19,36 @@ ContainerizedCPP is a C++20 starter, containerized project template using:
 ContainerizedCPP/
 ├── src/
 │   ├── apps/               # Executables
-│   │   ├── Omniscope/          # Web-based IPC traffic inspector
+│   │   ├── OmniscopeDds/       # Web-based DDS traffic inspector, dynamic discovery
 │   │   │   ├── ITransport.h          # Abstract transport interface
-│   │   │   ├── TransportDds.h/.cpp    # DDS transport (pImpl)
-│   │   │   ├── TransportZyre.h/.cpp   # Zyre protobuf transport (pImpl)
 │   │   │   ├── PlaybackEngine.h/.cpp # Recording playback engine
 │   │   │   ├── OmniscopeApp.h/.cpp   # Crow HTTP/WS orchestrator (pImpl)
-│   │   │   ├── CrowCompat.h          # C++20 atomic shim for Crow
-│   │   │   ├── main.cpp              # Entry point
+│   │   │   ├── TransportDds.h/.cpp   # Dynamic DDS discovery + raw-CDR capture/replay
+│   │   │   ├── main.cpp
 │   │   │   └── web/monitor.html      # Embedded single-page UI
-│   │   ├── TestApps/           # Test/demo executables
-│   │   │   ├── ZyrePublisherTest.cpp
-│   │   │   ├── ZyreSubscriberTest.cpp
-│   │   │   ├── HighBandwidthPublisherTester.cpp
-│   │   │   ├── HighBandwidthSubscriberTester.cpp
-│   │   │   ├── DDSPublisherTest.cpp
-│   │   │   ├── DDSSubscriberTest.cpp
-│   │   │   └── Vita49RoundTripTest.cpp
-│   │   └── Tools/              # Utility/benchmark executables
-│   │       ├── Vita49PerfBenchmark.cpp
-│   │       └── Vita49FileCodec.cpp
+│   │   └── RadarDDSDemo/       # Two-app CycloneDDS QoS profile demo
+│   │       ├── Radar.cpp             # Radar sensor node
+│   │       ├── Workstation.cpp       # Operator workstation
+│   │       ├── RadarTopics.h/.cpp    # Per-topic QoS registry
+│   │       └── idl/                  # Own IDL (Command, RadarTrack, etc.)
 │   └── libs/               # Libraries
 │       ├── CommonUtils/    # Common utility library
 │       │   ├── GeneralLogger.h/.cpp  # Async spdlog wrapper with macros
 │       │   ├── Timer.h/.cpp          # Basic timer class
 │       │   ├── SnoozableTimer.h/.cpp # Timer with snooze capability
 │       │   └── DataHandler.h         # Data handling (header-only)
-│       ├── PubSub/         # Publish-Subscribe library (Zyre + UDP multicast)
-│       │   ├── ZyreNode.h/.cpp            # Base Zyre node class
-│       │   ├── ZyrePublisher.h/.cpp       # Zyre-based publisher
-│       │   ├── ZyreSubscriber.h/.cpp      # Zyre-based subscriber
-│       │   ├── HighBandwidthPublisher.h/.cpp   # UDP multicast publisher
-│       │   └── HighBandwidthSubscriber.h/.cpp  # UDP multicast subscriber
-│       ├── CycloneDDS/     # DDS pub/sub library (Eclipse Cyclone DDS)
-│       │   ├── DDSTopicConfig.h       # Centralized topic/QoS registry
-│       │   ├── CycloneDDSConfig.h/.cpp # DDS domain/participant configuration
-│       │   ├── DDSPublisher.h         # Template DDS publisher (header-only)
-│       │   ├── DDSSubscriber.h        # Template DDS subscriber (header-only)
-│       │   ├── generate_dds_json_helpers.py  # IDL-to-JSON helper generator
-│       │   └── idl/                   # IDL message definitions
-│       │       ├── SensorData.idl
-│       │       ├── Command.idl
-│       │       ├── TrackData.idl
-│       │       └── MessageHeader.idl
-│       ├── Vita49_2/       # VITA 49.2 signal data packet codec
-│       │   ├── PacketHeader.h/.cpp
-│       │   ├── SignalDataPacket.h/.cpp
-│       │   ├── ContextPacket.h/.cpp
-│       │   ├── Vita49Codec.h/.cpp
-│       │   ├── Vita49Types.h
-│       │   └── ByteSwap.h
-│       └── proto/          # Protocol buffer library
-│           ├── ProtoTopicConfig.h        # Constexpr topic enum + string registry
-│           ├── ProtoJsonDispatch.h       # Runtime proto binary↔JSON dispatch
-│           └── proto-messages/ # .proto source files
-│               ├── sensor_reading.proto
-│               ├── sensor_data_batch.proto
-│               ├── command.proto
-│               ├── command_response.proto
-│               ├── application_config.proto
-│               └── message_header.proto
+│       └── CycloneDDS/     # DDS pub/sub library (Eclipse Cyclone DDS)
+│           ├── DDSTopicConfig.h       # Centralized topic/QoS registry
+│           ├── DDSPublisher.h         # Template DDS publisher (header-only)
+│           ├── DDSSubscriber.h        # Template DDS subscriber (header-only,
+│           │                          # event-driven via WaitSet/StatusCondition)
+│           ├── BlobSertype.h/.cpp     # Type-unaware raw-CDR sertype (OmniscopeDds)
+│           └── BuiltinTopicReader.h/.cpp # Dynamic topic discovery (OmniscopeDds)
+│               # No message IDL of its own — each app supplies its own
+│               # (see src/apps/RadarDDSDemo/idl/, tests/DDSTests/idl/)
 ├── tests/                  # Unit tests
 │   ├── CommonUtilsTests/   # Tests for CommonUtils library
-│   ├── ProtoTests/         # Tests for Proto library
-│   ├── PubSubTests/        # Tests for PubSub library
-│   ├── DDSTests/           # Tests for CycloneDDS library
-│   └── Vita49_2Tests/      # Tests for Vita49_2 library
+│   └── DDSTests/           # Tests for CycloneDDS library (own idl/ dir)
 ├── docs/                   # Documentation
 └── .github/                # CI/CD and this file
 ```
@@ -156,13 +122,6 @@ private:
 3. Create `tests/CommonUtilsTests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
 4. Re-run CMake configure to pick up new files
 
-### Adding a New PubSub Class
-
-1. Create `src/libs/PubSub/NewClass.h`
-2. Create `src/libs/PubSub/NewClass.cpp` (auto-discovered via `file(GLOB)`)
-3. Create `tests/PubSubTests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
-4. Re-run CMake configure to pick up new files
-
 ### Adding a New CycloneDDS Class
 
 1. Create `src/libs/CycloneDDS/NewClass.h`
@@ -172,23 +131,12 @@ private:
 
 ### Adding a New DDS IDL Message
 
-1. Create or edit file in `src/libs/CycloneDDS/idl/` directory
-2. IDL files are auto-discovered via glob in `src/libs/CycloneDDS/CMakeLists.txt`
+CycloneDDSLib ships no message IDL of its own. Each app owns its IDL:
+
+1. Create or edit `.idl` files in your app's own `idl/` directory
+2. In your app's `CMakeLists.txt`, glob the files and call `idlcxx_generate(TARGET YourAppMessages FILES ${IDL_FILES})` (see `src/apps/RadarDDSDemo/CMakeLists.txt`)
 3. Include generated header as `#include "MessageName.hpp"`
 4. Re-run CMake configure to pick up new files
-
-### Adding a New Vita49_2 Class
-
-1. Create `src/libs/Vita49_2/NewClass.h`
-2. Create `src/libs/Vita49_2/NewClass.cpp` (auto-discovered via `file(GLOB)`)
-3. Create `tests/Vita49_2Tests/NewClassUt.cpp` (auto-discovered via `file(GLOB)`)
-4. Re-run CMake configure to pick up new files
-
-### Adding a New Proto Message
-
-1. Create or edit file in `src/libs/proto/proto-messages/` directory
-2. Proto files are auto-discovered via glob in `src/libs/proto/CMakeLists.txt`
-3. Include generated header as `#include "message_name.pb.h"`
 
 ### Adding a New Application
 
@@ -199,56 +147,44 @@ private:
    target_link_libraries(new_app PRIVATE CommonUtils ...)
    ```
 
-### Adding a New Omniscope Transport
+### Adding a New OmniscopeDds Transport
 
-1. Create `src/apps/Omniscope/NewTransport.h` and `NewTransport.cpp`
-2. Implement the `Omniscope::ITransport` interface (see `TransportDds` for reference)
-3. Instantiate in `src/apps/Omniscope/main.cpp` and push into the transports vector
-4. Source files are auto-discovered via `file(GLOB)` in `Omniscope/CMakeLists.txt`
+1. Create `src/apps/OmniscopeDds/NewTransport.h` and `NewTransport.cpp`
+2. Implement the `Omniscope::ITransport` interface (see `src/apps/OmniscopeDds/TransportDds.h/.cpp` for reference)
+3. Instantiate it and register via `app.addTransport(...)` in `src/apps/OmniscopeDds/main.cpp`
+4. Add the new `.cpp` to the explicit source list in `add_executable(OmniscopeDds ...)` in `src/apps/OmniscopeDds/CMakeLists.txt`
 5. Re-run CMake configure to pick up new files
 
 ## Build Commands
 
 ```bash
 # Configure
-cmake --preset container-debug
+cmake --preset debug-san
 
 # Build
-cmake --build --preset container-debug
+cmake --build --preset debug-san
 
 # Test
-ctest --preset container-debug
+ctest --preset debug-san
 
 # Coverage
-cmake --build --preset container-coverage --target CommonUtilsCoverage
+cmake --build --preset debug-coverage --target CommonUtilsCoverage
 ```
 
 ## CMake Targets
 
 - `CommonUtils` - CommonUtils shared library
-- `PubSubLib` - PubSub shared library (Zyre and HighBandwidth messaging)
-- `ProtoLib` - Protobuf library (alias: `ContainerizedCPP::proto`)
-- `CycloneDDSLib` - DDS library (STATIC, wrappers + generated IDL types + JSON helpers)
-- `DDSMessages` - Generated IDL C++ types (linked by CycloneDDSLib)
-- `Vita49_2` - VITA 49.2 signal data packet codec shared library
-- `ZyrePublisher` - Zyre publisher test application
-- `ZyreSubscriber` - Zyre subscriber test application
-- `HighBandwidthPublisher` - UDP multicast publisher test application
-- `HighBandwidthSubscriber` - UDP multicast subscriber test application
-- `DDSPublisher` - DDS publisher test application
-- `DDSSubscriber` - DDS subscriber test application
-- `Vita49RoundTripTest` - VITA 49.2 round-trip test application
-- `Vita49PerfBenchmark` - VITA 49.2 performance benchmark application
-- `Vita49FileCodec` - VITA 49.2 file codec application
-- `Omniscope` - Web-based IPC traffic inspector (Crow HTTP/WebSocket)
+- `CycloneDDSLib` - DDS library (STATIC, type-agnostic wrappers — no message IDL of its own)
+- `OmniscopeDds` - Web-based DDS traffic inspector with dynamic topic discovery, recording, and playback
+- `DDSTestMessages` - DDSTests' own generated IDL C++ types
+- `RadarDDSMessages` - RadarDDSDemo's generated IDL C++ types
+- `RadarTopics` - RadarDDSDemo's per-topic QoS registry (STATIC)
+- `RadarDDSWorkstation` - RadarDDSDemo operator workstation application
+- `RadarDDSRadar` - RadarDDSDemo radar sensor node application
 - `CommonUtilsTests` - CommonUtils unit tests
-- `ProtoTests` - Proto unit tests
-- `PubSubTests` - PubSub unit tests
 - `DDSTests` - DDS unit tests
-- `Vita49_2Tests` - VITA 49.2 unit tests
 - `coverage` - Unified coverage report target (when `ENABLE_COVERAGE=ON`)
 - `CommonUtilsCoverage` - CommonUtils coverage report target (when `ENABLE_COVERAGE=ON`)
-- `PubSubCoverage` - PubSub coverage report target (when `ENABLE_COVERAGE=ON`)
 
 ## Dependencies Available
 
@@ -257,14 +193,10 @@ When suggesting code, these libraries are available:
 | Library | Include | Namespace/Usage |
 |---------|---------|------------------|
 | spdlog | `<spdlog/spdlog.h>` | `spdlog::info()` or `CommonUtils::GeneralLogger` |
-| protobuf | `"message.pb.h"` | `messages::MessageType` |
-| ZeroMQ | `<zmq.hpp>` | `zmq::context_t`, `zmq::socket_t` |
-| CZMQ | `<czmq.h>` | `zsock_t`, `zactor_t` |
-| Zyre | `<zyre.h>` | `zyre_t` |
 | Cyclone DDS | `<dds/dds.hpp>` | `dds::domain::DomainParticipant`, `dds::pub::DataWriter` |
 | CycloneDDS wrappers | `"CycloneDDS/DDSPublisher.h"` | `CycloneDDS::DDSPublisher<T>`, `CycloneDDS::DDSSubscriber<T>` |
 | CycloneDDS config | `"CycloneDDS/DDSTopicConfig.h"` | `CycloneDDS::DDSTopicConfig`, `CycloneDDS::TopicEntry` |
-| Crow | `<crow.h>` | `crow::SimpleApp`, `crow::json::wvalue` (include via `CrowCompat.h` for C++20) |
+| Crow | `<crow.h>` | `crow::SimpleApp`, `crow::json::wvalue` |
 | Google Test | `<gtest/gtest.h>` | `TEST()`, `EXPECT_EQ()` |
 
 ## Testing Patterns

@@ -17,6 +17,7 @@ module radar_demo
       HEALTH_OFFLINE
    };
 
+   @topic
    struct ComponentStatus
    {
       RadarMessageHeader header;

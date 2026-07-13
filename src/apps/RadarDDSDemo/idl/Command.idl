@@ -15,6 +15,7 @@ module radar_demo
       CMD_SET_MODE
    };
 
+   @topic
    struct Command
    {
       RadarMessageHeader header;

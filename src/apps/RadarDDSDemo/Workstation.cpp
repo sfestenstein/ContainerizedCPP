@@ -11,20 +11,15 @@
  */
 
 #include "CommonUtils/GeneralLogger.h"
-#include "FastDDS/FastDDSPublisher.h"
-#include "FastDDS/FastDDSSubscriber.h"
+#include "CycloneDDS/DDSPublisher.h"
+#include "CycloneDDS/DDSSubscriber.h"
 #include "RadarTopics.h"
 
-#include "Command.h"
-#include "CommandPubSubTypes.h"
-#include "CommandStatus.h"
-#include "CommandStatusPubSubTypes.h"
-#include "ComponentStatus.h"
-#include "ComponentStatusPubSubTypes.h"
-#include "RadarAlert.h"
-#include "RadarAlertPubSubTypes.h"
-#include "RadarTrack.h"
-#include "RadarTrackPubSubTypes.h"
+#include "Command.hpp"
+#include "CommandStatus.hpp"
+#include "ComponentStatus.hpp"
+#include "RadarAlert.hpp"
+#include "RadarTrack.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -35,16 +30,11 @@
 #include <vector>
 
 using radar_demo::Command;
-using radar_demo::CommandPubSubType;
 using radar_demo::CommandStatus;
-using radar_demo::CommandStatusPubSubType;
 using radar_demo::CommandType;
 using radar_demo::ComponentStatus;
-using radar_demo::ComponentStatusPubSubType;
 using radar_demo::RadarAlert;
-using radar_demo::RadarAlertPubSubType;
 using radar_demo::RadarTrack;
-using radar_demo::RadarTrackPubSubType;
 
 static std::atomic<bool> isRunning{true};
 void signalHandler(int)
@@ -98,11 +88,11 @@ int main(int argc, char *argv[])
    RadarDemo::RadarTopics topics;
    const auto &config = topics.config();
 
-   FastDDS::FastDDSPublisher<Command, CommandPubSubType> commandPub(
+   CycloneDDS::DDSPublisher<Command> commandPub(
       domainId, config.getEntry(std::string(RadarDemo::COMMAND_TOPIC)), "WorkstationCommandPub");
 
    // RadarTrack drop tracking — touched only from this subscriber's own
-   // listener thread, so no synchronization is needed.
+   // polling thread, so no synchronization is needed.
    std::unordered_map<int32_t, int32_t> lastTrackSeq;
    uint64_t tracksReceived = 0;
    uint64_t trackDropsObserved = 0;
@@ -110,7 +100,7 @@ int main(int argc, char *argv[])
    std::atomic<bool> firstComponentStatusSeen{false};
    std::atomic<bool> firstAlertSeen{false};
 
-   FastDDS::FastDDSSubscriber<CommandStatus, CommandStatusPubSubType> commandStatusSub(
+   CycloneDDS::DDSSubscriber<CommandStatus> commandStatusSub(
       domainId, config.getEntry(std::string(RadarDemo::COMMAND_STATUS_TOPIC)), "WorkstationCommandStatusSub");
    commandStatusSub.subscribe(
       [](const CommandStatus &msg)
@@ -118,8 +108,9 @@ int main(int argc, char *argv[])
          GPINFO("[CommandStatus] command_id={} result={} detail={}",
                 msg.command_id(), static_cast<int>(msg.result()), msg.detail());
       });
+   commandStatusSub.start();
 
-   FastDDS::FastDDSSubscriber<RadarTrack, RadarTrackPubSubType> trackSub(
+   CycloneDDS::DDSSubscriber<RadarTrack> trackSub(
       domainId, config.getEntry(std::string(RadarDemo::RADAR_TRACK_TOPIC)), "WorkstationTrackSub");
    trackSub.subscribe(
       [&](const RadarTrack &msg)
@@ -136,8 +127,9 @@ int main(int argc, char *argv[])
             GPINFO("[RadarTrack] received={} drops_observed={}", tracksReceived, trackDropsObserved);
          }
       });
+   trackSub.start();
 
-   FastDDS::FastDDSSubscriber<ComponentStatus, ComponentStatusPubSubType> componentSub(
+   CycloneDDS::DDSSubscriber<ComponentStatus> componentSub(
       domainId, config.getEntry(std::string(RadarDemo::COMPONENT_STATUS_TOPIC)), "WorkstationComponentSub");
    componentSub.subscribe(
       [&](const ComponentStatus &msg)
@@ -148,8 +140,9 @@ int main(int argc, char *argv[])
                 msg.component_id(), static_cast<int>(msg.health()),
                 msg.temperature_c(), msg.voltage_v(), msg.detail());
       });
+   componentSub.start();
 
-   FastDDS::FastDDSSubscriber<RadarAlert, RadarAlertPubSubType> alertSub(
+   CycloneDDS::DDSSubscriber<RadarAlert> alertSub(
       domainId, config.getEntry(std::string(RadarDemo::RADAR_ALERT_TOPIC)), "WorkstationAlertSub");
    alertSub.subscribe(
       [&](const RadarAlert &msg)
@@ -159,11 +152,12 @@ int main(int argc, char *argv[])
                 isFirst ? "[late-joiner snapshot] " : "",
                 msg.alert_id(), static_cast<int>(msg.severity()), msg.component_id(), msg.message());
       });
+   alertSub.start();
 
    GPINFO("RadarDDSWorkstation running. Press Ctrl+C to stop.");
 
    const std::vector<CommandType> commandCycle = {
-      radar_demo::CMD_START_SCAN, radar_demo::CMD_SET_MODE, radar_demo::CMD_STOP_SCAN};
+      CommandType::CMD_START_SCAN, CommandType::CMD_SET_MODE, CommandType::CMD_STOP_SCAN};
    int32_t sequence = 0;
 
    while (isRunning.load())

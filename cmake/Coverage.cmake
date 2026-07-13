@@ -20,7 +20,7 @@
 #   add_unified_coverage_target(
 #      NAME     coverage
 #      TITLE    "ContainerizedCPP Coverage Report"
-#      TARGETS  CommonUtilsCoverage PubSubCoverage DDSCoverage Vita49_2Coverage
+#      TARGETS  CommonUtilsCoverage DDSCoverage
 #   )
 # =============================================================================
 

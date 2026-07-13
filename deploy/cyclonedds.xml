@@ -18,11 +18,9 @@
       </General>
       <Discovery>
          <Peers>
-            <Peer address="dds-publisher" />
-            <Peer address="dds-subscriber" />
-            <Peer address="zyre-publisher" />
-            <Peer address="zyre-subscriber" />
-            <Peer address="omniscope" />
+            <Peer address="radar-radar" />
+            <Peer address="radar-workstation" />
+            <Peer address="omniscope-dds" />
          </Peers>
          <ParticipantIndex>auto</ParticipantIndex>
       </Discovery>

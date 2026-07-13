@@ -17,6 +17,7 @@ module radar_demo
       CMDSTATUS_FAILED
    };
 
+   @topic
    struct CommandStatus
    {
       RadarMessageHeader header;
