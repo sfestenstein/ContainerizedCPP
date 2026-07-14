@@ -20,6 +20,14 @@ const std::string MONITOR_HTML =
 #include "web/monitor.html.inc"
 ;
 
+const std::string MONITOR_CSS =
+#include "web/style.css.inc"
+;
+
+const std::string MONITOR_JS =
+#include "web/app.js.inc"
+;
+
 namespace Omniscope
 {
 
@@ -260,6 +268,20 @@ struct OmniscopeApp::Impl
       ([]() {
          crow::response resp(MONITOR_HTML);
          resp.set_header("Content-Type", "text/html; charset=utf-8");
+         return resp;
+      });
+
+      CROW_ROUTE(crowApp, "/style.css")
+      ([]() {
+         crow::response resp(MONITOR_CSS);
+         resp.set_header("Content-Type", "text/css; charset=utf-8");
+         return resp;
+      });
+
+      CROW_ROUTE(crowApp, "/app.js")
+      ([]() {
+         crow::response resp(MONITOR_JS);
+         resp.set_header("Content-Type", "text/javascript; charset=utf-8");
          return resp;
       });
 

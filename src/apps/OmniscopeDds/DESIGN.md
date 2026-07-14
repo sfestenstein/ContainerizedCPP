@@ -18,7 +18,7 @@ DDS domain instead of being a stub.
 | **HTTP / WebSocket server** | [Crow](https://crowcpp.org/) 1.3                                 | Lightweight C++ micro-framework (header-only, BSD-3). Serves the single-page UI and provides the `/ws` WebSocket endpoint for live message streaming.    |
 | **DDS middleware**          | [Eclipse Cyclone DDS](https://cyclonedds.io/) 0.10               | OMG Data Distribution Service implementation used by `TransportDds`. Topics are discovered dynamically at runtime — no compiled-in IDL types.            |
 | **Logging**                 | [spdlog](https://github.com/gabime/spdlog) (via `GeneralLogger`) | Async structured logging throughout the application.                                                                                                     |
-| **Build**                   | CMake 3.25+ with presets                                         | The HTML UI is embedded at build time via `EmbedHtml.cmake` so the binary is fully self-contained — no external files needed at runtime.                 |
+| **Build**                   | CMake 3.25+ with presets                                         | The HTML/CSS/JS are embedded at build time via `EmbedAsset.cmake` so the binary is fully self-contained — no external files needed at runtime.            |
 | **Language**                | C++20                                                            | Uses `std::format`, `std::atomic`, and concepts from the C++20 standard.                                                                                  |
 
 ## Architecture
@@ -235,6 +235,8 @@ objects with a `"type"` field:
 | Method | Path             | Description                                  |
 | ------ | ---------------- | -------------------------------------------- |
 | `GET`  | `/`              | Serves the embedded single-page HTML UI      |
+| `GET`  | `/style.css`     | Serves the embedded stylesheet               |
+| `GET`  | `/app.js`        | Serves the embedded client-side JavaScript   |
 | `POST` | `/playback/load` | Upload a `.dat` JSON-Lines file for playback |
 
 ## Recording File Format
@@ -249,15 +251,23 @@ Recordings are stored as JSON-Lines (`.dat`), one message per line:
 
 ```
 src/apps/OmniscopeDds/
-├── CMakeLists.txt          # Build config, HTML embedding, link Crow + CommonUtils + CycloneDDSLib
+├── CMakeLists.txt          # Build config, web asset embedding, link Crow + CommonUtils + CycloneDDSLib
 ├── ITransport.h            # Abstract transport interface
 ├── PlaybackEngine.h/.cpp   # Recording playback with original timing
 ├── OmniscopeApp.h/.cpp     # Crow HTTP/WS orchestrator (pImpl)
 ├── TransportDds.h/.cpp     # Dynamic DDS discovery + raw-CDR capture/replay (pImpl)
 ├── main.cpp                # Entry point, argument parsing
 └── web/
-    └── monitor.html        # Single-page browser UI (embedded at build time)
+    ├── monitor.html        # Single-page browser UI markup
+    ├── style.css            # Stylesheet
+    └── app.js               # Client-side JavaScript (WebSocket protocol, UI logic)
 ```
+
+Each of the three `web/` files is embedded into the binary at build time as
+a C++ raw string (via `embed_web_asset()` in `src/apps/EmbedAsset.cmake`)
+and served from its own route (`/`, `/style.css`, `/app.js`) — the browser
+loads them the normal way via `<link>`/`<script src>`, but the binary
+remains fully self-contained with no external files needed at runtime.
 
 ## Usage
 

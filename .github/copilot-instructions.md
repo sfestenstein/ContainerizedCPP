@@ -25,7 +25,7 @@ ContainerizedCPP/
 │   │   │   ├── OmniscopeApp.h/.cpp   # Crow HTTP/WS orchestrator (pImpl)
 │   │   │   ├── TransportDds.h/.cpp   # Dynamic DDS discovery + raw-CDR capture/replay
 │   │   │   ├── main.cpp
-│   │   │   └── web/monitor.html      # Embedded single-page UI
+│   │   │   └── web/                  # monitor.html, style.css, app.js (embedded UI)
 │   │   └── RadarDDSDemo/       # Two-app CycloneDDS QoS profile demo
 │   │       ├── Radar.cpp             # Radar sensor node
 │   │       ├── Workstation.cpp       # Operator workstation

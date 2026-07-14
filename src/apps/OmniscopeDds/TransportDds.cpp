@@ -106,7 +106,11 @@ struct TransportDds::Impl
 
    // Lazily creates (or returns the existing) replay writer for a topic,
    // mirroring subscribe()'s lazy-reader creation below.
-   ActiveWriter *getOrCreateWriter(const std::string &topic, const std::string &typeName)
+   ActiveWriter *getOrCreateWriter(const std::string &topic,
+                                   const std::string &typeName,
+                                   const std::string &reliability,
+                                   const std::string &durability,
+                                   int32_t historyDepth)
    {
       {
          std::lock_guard lock(mutex);
@@ -142,13 +146,29 @@ struct TransportDds::Impl
       }
       struct ddsi_sertype *sertypeForWriter = sertype;
 
-      // Reliable/Volatile/KeepLast(1): Reliable offered QoS is compatible
-      // with both Reliable- and BestEffort-requesting readers (RxO rules),
-      // maximizing compatibility with whatever subscribers exist.
       dds_qos_t *qos = dds_create_qos();
-      dds_qset_reliability(qos, DDS_RELIABILITY_RELIABLE, DDS_SECS(1));
-      dds_qset_durability(qos, DDS_DURABILITY_VOLATILE);
-      dds_qset_history(qos, DDS_HISTORY_KEEP_LAST, 1);
+      dds_reliability_kind_t reliabilityKind = DDS_RELIABILITY_RELIABLE;
+      if (reliability == "best_effort")
+         reliabilityKind = DDS_RELIABILITY_BEST_EFFORT;
+
+      dds_durability_kind_t durabilityKind = DDS_DURABILITY_VOLATILE;
+      if (durability == "transient_local")
+         durabilityKind = DDS_DURABILITY_TRANSIENT_LOCAL;
+      else if (durability == "transient")
+         durabilityKind = DDS_DURABILITY_TRANSIENT;
+      else if (durability == "persistent")
+         durabilityKind = DDS_DURABILITY_PERSISTENT;
+
+      dds_qset_reliability(qos, reliabilityKind, DDS_SECS(1));
+      dds_qset_durability(qos, durabilityKind);
+      if (historyDepth < 0)
+      {
+         dds_qset_history(qos, DDS_HISTORY_KEEP_ALL, 0);
+      }
+      else
+      {
+         dds_qset_history(qos, DDS_HISTORY_KEEP_LAST, std::max<int32_t>(1, historyDepth));
+      }
 
       dds_entity_t writer = dds_create_writer(publisher, topicEntity, qos, nullptr);
       dds_delete_qos(qos);
@@ -174,6 +194,9 @@ struct TransportDds::Impl
 
 static void pollRawCdr(dds_entity_t reader, const std::string &topic,
                        const std::string &typeName,
+                       const std::string &reliability,
+                       const std::string &durability,
+                       int32_t historyDepth,
                        const MessageCallback &callback,
                        std::atomic<bool> &running)
 {
@@ -202,8 +225,8 @@ static void pollRawCdr(dds_entity_t reader, const std::string &topic,
          buf[0] = nullptr;
 
          std::string json = std::format(
-            R"({{"raw_cdr":"{}","byte_count":{},"type_name":"{}"}})",
-            hex, sz, typeName);
+            R"({{"raw_cdr":"{}","byte_count":{},"type_name":"{}","qos":{{"reliability":"{}","durability":"{}","history_depth":{}}}}})",
+            hex, sz, typeName, reliability, durability, historyDepth);
 
          callback(topic, json);
       }
@@ -324,11 +347,19 @@ void TransportDds::subscribe(const std::string &topic, MessageCallback callback)
 
    // Retrieve the type name for the JSON envelope.
    std::string typeName;
+   std::string reliability = "reliable";
+   std::string durability = "volatile";
+   int32_t historyDepth = 1;
    {
       std::lock_guard lock(_impl->mutex);
       auto it = _impl->discoveredTopics.find(topic);
       if (it != _impl->discoveredTopics.end())
+      {
          typeName = it->second.typeName;
+         reliability = it->second.reliability;
+         durability = it->second.durability;
+         historyDepth = it->second.historyDepth;
+      }
    }
 
    // Create a blob sertype that accepts any CDR bytes without type-checking.
@@ -376,8 +407,11 @@ void TransportDds::subscribe(const std::string &topic, MessageCallback callback)
    auto *runPtr = &sub->running;
 
    sub->thread = std::thread(
-      [reader, topic, typeName, callback, runPtr]()
-      { pollRawCdr(reader, topic, typeName, callback, *runPtr); });
+      [reader, topic, typeName, reliability, durability, historyDepth, callback, runPtr]()
+      {
+         pollRawCdr(reader, topic, typeName, reliability, durability, historyDepth,
+                    callback, *runPtr);
+      });
 
    std::lock_guard lock(_impl->mutex);
    _impl->activeSubs[topic] = std::move(sub);
@@ -417,7 +451,19 @@ void TransportDds::publishFromJson(const std::string &topic,
 
    std::string typeName = j.has("type_name") ? std::string(j["type_name"].s()) : std::string();
 
-   ActiveWriter *aw = _impl->getOrCreateWriter(topic, typeName);
+   std::string reliability = "reliable";
+   std::string durability = "volatile";
+   int32_t historyDepth = 1;
+   if (j.has("qos"))
+   {
+      auto qos = j["qos"];
+      if (qos.has("reliability")) reliability = std::string(qos["reliability"].s());
+      if (qos.has("durability")) durability = std::string(qos["durability"].s());
+      if (qos.has("history_depth")) historyDepth = static_cast<int32_t>(qos["history_depth"].i());
+   }
+
+   ActiveWriter *aw = _impl->getOrCreateWriter(topic, typeName, reliability, durability,
+                                               historyDepth);
    if (!aw) return;
 
    ddsrt_iovec_t iov;

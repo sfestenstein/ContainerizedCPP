@@ -3,23 +3,14 @@
 # =============================================================================
 
 # ---------------------------------------------------------------------------
-# Embed the monitor HTML as a C++ raw-string include
+# Embed the web UI assets (HTML/CSS/JS) as C++ raw-string includes, so the
+# binary stays self-contained — no external files needed at runtime.
 # ---------------------------------------------------------------------------
-set(MONITOR_HTML_SRC ${CMAKE_CURRENT_SOURCE_DIR}/web/monitor.html)
-set(MONITOR_HTML_INC ${CMAKE_CURRENT_BINARY_DIR}/web/monitor.html.inc)
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/web)
+include(${CMAKE_CURRENT_SOURCE_DIR}/../EmbedAsset.cmake)
 
-add_custom_command(
-   OUTPUT  ${MONITOR_HTML_INC}
-   COMMAND ${CMAKE_COMMAND}
-      -DHTML_SRC=${MONITOR_HTML_SRC}
-      -DHTML_INC=${MONITOR_HTML_INC}
-      -P ${CMAKE_CURRENT_SOURCE_DIR}/../EmbedHtml.cmake
-   DEPENDS ${MONITOR_HTML_SRC}
-           ${CMAKE_CURRENT_SOURCE_DIR}/../EmbedHtml.cmake
-   COMMENT "Embedding monitor.html into C++ include"
-)
-add_custom_target(OmniscopeDdsHtml DEPENDS ${MONITOR_HTML_INC})
+embed_web_asset(OmniscopeDdsHtml web/monitor.html)
+embed_web_asset(OmniscopeDdsCss  web/style.css)
+embed_web_asset(OmniscopeDdsJs   web/app.js)
 
 # ---------------------------------------------------------------------------
 # Executable
@@ -30,7 +21,7 @@ add_executable(OmniscopeDds
    PlaybackEngine.cpp
    TransportDds.cpp
 )
-add_dependencies(OmniscopeDds OmniscopeDdsHtml)
+add_dependencies(OmniscopeDds OmniscopeDdsHtml OmniscopeDdsCss OmniscopeDdsJs)
 
 # Crow headers trigger clang-tidy false positives — disable for this target.
 set_target_properties(OmniscopeDds PROPERTIES CXX_CLANG_TIDY "")
@@ -45,7 +36,7 @@ endif()
 
 target_include_directories(OmniscopeDds PRIVATE
    ${CMAKE_CURRENT_SOURCE_DIR}   # ITransport.h, OmniscopeApp.h, PlaybackEngine.h, TransportDds.h
-   ${CMAKE_CURRENT_BINARY_DIR}   # web/monitor.html.inc
+   ${CMAKE_CURRENT_BINARY_DIR}   # web/{monitor.html,style.css,app.js}.inc
 )
 
 target_link_libraries(OmniscopeDds
