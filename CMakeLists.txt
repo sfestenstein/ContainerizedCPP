@@ -108,6 +108,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Libraries
 add_subdirectory(src/libs/CommonUtils)
+add_subdirectory(src/libs/DdsCore)
 add_subdirectory(src/libs/CycloneDDS)
 
 # Applications
@@ -118,6 +119,7 @@ if(BUILD_TESTS)
    enable_testing()
    add_subdirectory(tests/CommonUtilsTests)
    add_subdirectory(tests/DDSTests)
+   add_subdirectory(tests/OmniscopeDdsTests)
 
    # Unified coverage target — runs all tests, generates a combined report
    include(Coverage)

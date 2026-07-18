@@ -1,6 +1,8 @@
 #ifndef BUILTINTOPICREADER_H_
 #define BUILTINTOPICREADER_H_
 
+#include "DdsCore/DdsTypes.h"
+
 #include <dds/dds.h>
 
 #include <atomic>
@@ -12,14 +14,7 @@ namespace CycloneDDS
 {
 
 /// Information about a topic discovered on the DDS network.
-struct DiscoveredTopic
-{
-   std::string name;
-   std::string typeName;
-   std::string reliability;  // "reliable" | "best_effort"
-   std::string durability;   // "volatile" | "transient_local" | "transient" | "persistent"
-   int32_t     historyDepth; // -1 = KEEP_ALL
-};
+using DiscoveredTopic = DdsCore::DiscoveredTopic;
 
 /// Invoked when a publisher endpoint appears (appeared=true) or leaves
 /// the domain (appeared=false). The instance_handle uniquely identifies

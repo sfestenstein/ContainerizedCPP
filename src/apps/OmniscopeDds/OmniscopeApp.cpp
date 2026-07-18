@@ -356,9 +356,8 @@ void OmniscopeApp::run()
    _impl->playback.emplace([this](const std::string &topic,
                                    const std::string &jsonData)
    {
-      auto *transport = _impl->findTransport(topic);
-      if (transport)
-         transport->publishFromJson(topic, jsonData);
+      for (const auto &t : _impl->transports)
+         t->publishFromJson(topic, jsonData);
    });
    _impl->setupRoutes();
 

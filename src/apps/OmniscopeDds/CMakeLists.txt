@@ -19,6 +19,7 @@ add_executable(OmniscopeDds
    main.cpp
    OmniscopeApp.cpp
    PlaybackEngine.cpp
+   RawSampleJsonCodec.cpp
    TransportDds.cpp
 )
 add_dependencies(OmniscopeDds OmniscopeDdsHtml OmniscopeDdsCss OmniscopeDdsJs)
@@ -40,5 +41,5 @@ target_include_directories(OmniscopeDds PRIVATE
 )
 
 target_link_libraries(OmniscopeDds
-   PRIVATE Crow::Crow CommonUtils CycloneDDSLib
+   PRIVATE Crow::Crow CommonUtils CycloneDDSLib DdsCore
 )
