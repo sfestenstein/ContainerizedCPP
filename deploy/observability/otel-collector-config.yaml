@@ -1,0 +1,42 @@
+# =============================================================================
+# OTel Collector config for the RadarDDSDemo observability stack.
+#
+# Receives metrics over OTLP/gRPC from RadarDDSWorkstation/RadarDDSRadar
+# (both default to localhost:4317, matching the port this collector publishes
+# to the host) and exposes them for Prometheus to scrape.
+# =============================================================================
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+exporters:
+  # Scraped by the prometheus service (see prometheus.yml) via the Docker
+  # network — not published to the host, containers reach it as
+  # otel-collector:8889.
+  prometheus:
+    endpoint: 0.0.0.0:8889
+
+  # Loki has accepted OTLP log ingestion natively since v3 at /otlp/v1/logs.
+  # The core otelcol image doesn't ship a dedicated "loki" exporter (that's
+  # contrib-only), so we use the standard otlphttp exporter instead — it
+  # appends "/v1/logs" to this base endpoint automatically.
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
+
+  # Text fallback for troubleshooting: `docker compose logs -f otel-collector`
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [prometheus, debug]
+    logs:
+      receivers: [otlp]
+      exporters: [otlphttp/loki, debug]

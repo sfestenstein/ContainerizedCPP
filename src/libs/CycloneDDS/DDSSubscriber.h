@@ -4,6 +4,7 @@
 // Project headers
 #include "CommonUtils/GeneralLogger.h"
 #include "CycloneDDS/DDSTopicConfig.h"
+#include "Observability/InterfaceMetrics.h"
 
 // Cyclone DDS C++ headers
 #include <dds/dds.hpp>
@@ -68,6 +69,7 @@ public:
       , _subscriber(_participant)
       , _entry(std::move(entry))
       , _running(false)
+      , _interfaceName(participantName)
    {
       _waitSet.attach_condition(_stopGuard);
       GPINFO("DDSSubscriber created: domain={}, topic={}, name={}",
@@ -183,6 +185,11 @@ private:
             {
                if (sample.info().valid())
                {
+                  // sizeof(T) is a stand-in for the real wire size -- wrong
+                  // for variable-length IDL types (strings/sequences), but
+                  // good enough to prove the metrics pipeline end-to-end.
+                  Observability::metrics().recordReceived(_interfaceName, Observability::InterfaceType::DDS,
+                                                            _entry.topicName, sizeof(T));
                   _handler(sample.data());
                }
             }
@@ -201,6 +208,7 @@ private:
    dds::core::cond::WaitSet _waitSet;
    dds::core::cond::GuardCondition _stopGuard;
    std::optional<dds::core::cond::StatusCondition> _statusCondition;
+   std::string _interfaceName;
 };
 
 } // namespace CycloneDDS

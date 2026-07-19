@@ -1,0 +1,11 @@
+# Tells Grafana to auto-load any dashboard JSON found in
+# grafana/dashboards/ on startup, so radar-dds-demo.json appears with no
+# manual import step.
+apiVersion: 1
+
+providers:
+  - name: RadarDDSDemo
+    type: file
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

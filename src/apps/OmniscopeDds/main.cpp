@@ -21,6 +21,7 @@
 int main(int argc, char *argv[])
 {
    CommonUtils::GeneralLogger logger;
+
    logger.init("OmniscopeDds");
 
    uint32_t domainId = 0;

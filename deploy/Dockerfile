@@ -46,8 +46,24 @@ RUN apt-get update \
 COPY --from=builder /usr/local/lib/lib*.so* /usr/local/lib/
 
 # Shared libraries: apt-installed third-party deps not present in the slim
-# runtime base (spdlog, fmt, Cyclone DDS C library, iceoryx shared-memory libs)
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libspdlog.so* /usr/lib/x86_64-linux-gnu/libfmt.so* /usr/lib/x86_64-linux-gnu/libddsc.so* /usr/lib/x86_64-linux-gnu/libiceoryx_*.so* /usr/local/lib/
+# runtime base (spdlog, fmt, Cyclone DDS C library, iceoryx shared-memory libs,
+# and the gRPC/protobuf/abseil/re2/c-ares family pulled in by the OpenTelemetry
+# OTLP gRPC exporter — verified against `ldd` on the built binaries).
+COPY --from=builder \
+  /usr/lib/x86_64-linux-gnu/libspdlog.so* \
+  /usr/lib/x86_64-linux-gnu/libfmt.so* \
+  /usr/lib/x86_64-linux-gnu/libddsc.so* \
+  /usr/lib/x86_64-linux-gnu/libiceoryx_*.so* \
+  /usr/lib/x86_64-linux-gnu/libgrpc++.so* \
+  /usr/lib/x86_64-linux-gnu/libgrpc.so* \
+  /usr/lib/x86_64-linux-gnu/libgpr.so* \
+  /usr/lib/x86_64-linux-gnu/libupb.so* \
+  /usr/lib/x86_64-linux-gnu/libaddress_sorting.so* \
+  /usr/lib/x86_64-linux-gnu/libprotobuf.so* \
+  /usr/lib/x86_64-linux-gnu/libre2.so* \
+  /usr/lib/x86_64-linux-gnu/libcares.so* \
+  /usr/lib/x86_64-linux-gnu/libabsl_*.so* \
+  /usr/local/lib/
 
 # Shared libraries: project's own (libCommonUtils.so)
 COPY --from=builder /workspace/build/release/lib/lib*.so* /usr/local/lib/

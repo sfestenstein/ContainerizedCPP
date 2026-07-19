@@ -38,7 +38,15 @@ target_link_libraries(RadarTopics PUBLIC
 )
 
 add_executable(RadarDDSWorkstation Workstation.cpp)
-target_link_libraries(RadarDDSWorkstation PRIVATE RadarTopics CommonUtils)
+target_link_libraries(RadarDDSWorkstation PRIVATE
+   RadarTopics
+   CommonUtils
+   Observability
+)
 
 add_executable(RadarDDSRadar Radar.cpp)
-target_link_libraries(RadarDDSRadar PRIVATE RadarTopics CommonUtils)
+target_link_libraries(RadarDDSRadar PRIVATE
+   RadarTopics
+   CommonUtils
+   Observability
+)

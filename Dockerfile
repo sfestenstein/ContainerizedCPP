@@ -25,6 +25,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # ---- Source-build fallbacks for dependencies not available via apt ----------
 ARG CYCLONEDDS_CXX_VERSION=0.10.5
 ARG CROW_VERSION=v1.2.0
+ARG OTEL_CPP_VERSION=v1.14.2
 
 # ---- Base environment -------------------------------------------------------
 ENV DEBIAN_FRONTEND=noninteractive
@@ -65,7 +66,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   cyclonedds-dev \
   cyclonedds-tools \
   libgtest-dev \
-  libgmock-dev
+  libgmock-dev \
+  libprotobuf-dev \
+  protobuf-compiler \
+  libgrpc++-dev \
+  protobuf-compiler-grpc
 
 RUN if [ ! -e /usr/bin/ninja-build ]; then ln -s /usr/bin/ninja /usr/bin/ninja-build; fi
 
@@ -105,6 +110,27 @@ RUN git clone --depth 1 --branch ${CROW_VERSION} \
   && cmake --build /tmp/crow/build \
   && cmake --install /tmp/crow/build \
   && rm -rf /tmp/crow
+
+# ---- OpenTelemetry C++ SDK (not packaged in Ubuntu 24.04) ------------------
+# Submodules are required: opentelemetry-proto (OTLP protobuf definitions)
+# lives as a git submodule, not a vendored copy.
+RUN git clone --recurse-submodules --shallow-submodules --depth 1 \
+  --branch ${OTEL_CPP_VERSION} \
+  https://github.com/open-telemetry/opentelemetry-cpp.git /tmp/opentelemetry-cpp \
+  && cmake -S /tmp/opentelemetry-cpp -B /tmp/opentelemetry-cpp/build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX=/usr/local \
+  -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+  -DBUILD_TESTING=OFF \
+  -DWITH_EXAMPLES=OFF \
+  -DOPENTELEMETRY_INSTALL=ON \
+  -DWITH_OTLP_GRPC=ON \
+  -DWITH_OTLP_HTTP=OFF \
+  -DCMAKE_PREFIX_PATH=/usr:/usr/local \
+  && cmake --build /tmp/opentelemetry-cpp/build \
+  && cmake --install /tmp/opentelemetry-cpp/build \
+  && ldconfig \
+  && rm -rf /tmp/opentelemetry-cpp
 
 RUN ldconfig
 

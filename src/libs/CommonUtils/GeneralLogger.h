@@ -90,6 +90,18 @@ public:
      */
     void init(const std::string &logNameBase);
 
+    /**
+     * @brief Attach an additional sink to the general logger.
+     *
+     * Lets callers fan log statements out to a destination beyond the
+     * built-in console/file sinks (e.g. an OpenTelemetry-backed sink) without
+     * touching any GPINFO/GPWARN/etc. call sites. Must be called after
+     * init().
+     *
+     * @param sink The sink to attach.
+     */
+    static void addSink(spdlog::sink_ptr sink);
+
     /** @brief Shared pointer to the general async logger instance. */
     // NOLINTNEXTLINE(readability-identifier-naming)
     static std::shared_ptr<spdlog::async_logger> s_generalLogger;

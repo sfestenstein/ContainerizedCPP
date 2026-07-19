@@ -21,13 +21,15 @@
 #include "RadarAlert.hpp"
 #include "RadarTrack.hpp"
 
+#include "Observability/InterfaceMetrics.h"
+#include "Observability/OtelLogSink.h"
+
 #include <atomic>
 #include <chrono>
 #include <csignal>
 #include <cstdint>
+#include <memory>
 #include <thread>
-#include <unordered_map>
-#include <vector>
 
 using radar_demo::Command;
 using radar_demo::CommandStatus;
@@ -76,6 +78,10 @@ int main(int argc, char *argv[])
 
    CommonUtils::GeneralLogger logger;
    logger.init("RadarDDSWorkstation");
+
+   auto otelMeterProvider = Observability::init({.serviceName = "RadarDDSWorkstation"});
+   auto otelLoggerProvider = Observability::initLogging({.serviceName = "RadarDDSWorkstation"});
+   CommonUtils::GeneralLogger::addSink(Observability::createOtelLogSink());
 
    uint32_t domainId = 0;
    if (argc > 1)
@@ -180,5 +186,15 @@ int main(int argc, char *argv[])
 
    GPINFO("RadarDDSWorkstation shutting down after {} commands, {} tracks ({} drops observed)",
           sequence, tracksReceived, trackDropsObserved);
+
+   // Flush any pending export synchronously. Shutdown() is intentionally not
+   // called here: the SDK's MeterProvider/LoggerProvider destructors already
+   // shut themselves down exactly once when the last reference (held by the
+   // global opentelemetry::metrics::Provider/opentelemetry::logs::Provider)
+   // is released at process exit, and calling Shutdown() a second time there
+   // is undefined behavior.
+   otelMeterProvider->ForceFlush();
+   otelLoggerProvider->ForceFlush();
+
    return 0;
 }

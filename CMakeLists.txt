@@ -84,6 +84,12 @@ endif()
 find_package(CycloneDDS-CXX REQUIRED)
 find_package(Crow REQUIRED)
 
+# opentelemetry-cpp's exported CMake config references the Protobuf::libprotobuf
+# and gRPC::grpc++ imported targets directly, so they must be resolved first.
+find_package(Protobuf REQUIRED)
+find_package(gRPC REQUIRED)
+find_package(opentelemetry-cpp CONFIG REQUIRED)
+
 if(BUILD_TESTS)
    find_package(GTest REQUIRED)
 
@@ -109,6 +115,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Libraries
 add_subdirectory(src/libs/CommonUtils)
 add_subdirectory(src/libs/DdsCore)
+add_subdirectory(src/libs/Observability)
 add_subdirectory(src/libs/CycloneDDS)
 
 # Applications

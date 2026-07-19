@@ -1,0 +1,11 @@
+# Auto-provisions Prometheus as Grafana's default datasource on startup, so
+# the dashboard works immediately with no manual clicking through the UI.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

@@ -4,6 +4,7 @@
 // Project headers
 #include "CommonUtils/GeneralLogger.h"
 #include "CycloneDDS/DDSTopicConfig.h"
+#include "Observability/InterfaceMetrics.h"
 
 // Cyclone DDS C++ headers
 #include <dds/dds.hpp>
@@ -47,6 +48,7 @@ public:
       : _participant(domainId)
       , _publisher(_participant)
       , _entry(std::move(entry))
+      , _interfaceName(participantName)
    {
       GPINFO("DDSPublisher created: domain={}, topic={}, name={}",
              domainId, _entry.topicName, participantName);
@@ -71,6 +73,13 @@ public:
    {
       auto &writer = getOrCreateWriter();
       writer.write(message);
+
+      // sizeof(T) is a stand-in for the real wire size -- wrong for
+      // variable-length IDL types (strings/sequences), but good enough to
+      // prove the metrics pipeline end-to-end. A real byte count needs the
+      // CDR-serialized size, not the in-memory struct size.
+      Observability::metrics().recordSent(_interfaceName, Observability::InterfaceType::DDS,
+                                           _entry.topicName, sizeof(T));
    }
 
    /**
@@ -108,6 +117,7 @@ private:
    dds::pub::Publisher _publisher;
    TopicEntry _entry;
    std::optional<WriterType> _writer;
+   std::string _interfaceName;
 };
 
 } // namespace CycloneDDS

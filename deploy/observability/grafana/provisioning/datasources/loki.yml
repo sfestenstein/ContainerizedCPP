@@ -1,0 +1,10 @@
+# Auto-provisions Loki as a Grafana datasource on startup, so the dashboard's
+# logs panel works immediately with no manual clicking through the UI.
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false

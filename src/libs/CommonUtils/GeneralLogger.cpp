@@ -84,4 +84,9 @@ void GeneralLogger::init(const std::string &logNameBase)
 
 }
 
+void GeneralLogger::addSink(spdlog::sink_ptr sink)
+{
+    s_generalLogger->sinks().push_back(std::move(sink));
+}
+
 }

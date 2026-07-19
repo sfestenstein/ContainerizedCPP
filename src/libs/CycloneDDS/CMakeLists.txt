@@ -47,4 +47,5 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
    CycloneDDS-CXX::ddscxx
    CommonUtils
    DdsCore
+   Observability
 )
