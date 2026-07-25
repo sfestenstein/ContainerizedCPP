@@ -1,0 +1,4 @@
+# Disables TLS on Data Prepper's own admin/health-check server (port 4900).
+# Local-demo-only setting — mirrors the ssl:false used on the otlp source
+# in pipelines.yaml.
+ssl: false

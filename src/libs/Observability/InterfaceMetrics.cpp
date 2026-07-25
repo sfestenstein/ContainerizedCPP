@@ -113,7 +113,10 @@ std::shared_ptr<opentelemetry::sdk::metrics::MeterProvider> init(const MetricsOp
 
    metrics_sdk::PeriodicExportingMetricReaderOptions readerOptions;
    readerOptions.export_interval_millis = options.aggregationPeriod;
-   readerOptions.export_timeout_millis = options.aggregationPeriod;
+   // Must be strictly less than export_interval_millis, or the SDK rejects
+   // this configuration and silently falls back to its own (much longer,
+   // ~60s) default interval instead of options.aggregationPeriod.
+   readerOptions.export_timeout_millis = options.aggregationPeriod / 2;
    auto reader = metrics_sdk::PeriodicExportingMetricReaderFactory::Create(std::move(exporter), readerOptions);
 
    auto context = metrics_sdk::MeterContextFactory::Create(

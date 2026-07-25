@@ -1,0 +1,34 @@
+# =============================================================================
+# Data Prepper pipeline for the RadarDDSDemo OpenSearch observability stack.
+#
+# Receives OTLP (logs + metrics) from the otel-collector service on its
+# unified `otlp` source, splits events by type, and writes each to its own
+# OpenSearch index using the SS4O ("Simple Schema for Observability")
+# naming convention that OpenSearch Observability dashboards expect.
+# =============================================================================
+
+otel-telemetry-pipeline:
+  workers: 2
+  delay: "100"
+  source:
+    otlp:
+      # otel-collector -> data-prepper is a private, in-network hop, so
+      # TLS is disabled here for demo simplicity (mirrors the Grafana
+      # stack's anonymous-auth-for-convenience posture).
+      ssl: false
+  route:
+    - logs: 'getEventType() == "LOG"'
+    - metrics: 'getEventType() == "METRIC"'
+  sink:
+    - opensearch:
+        hosts: ["http://opensearch:9200"]
+        insecure: true
+        index: "ss4o_logs-otel-v1-%{yyyy.MM.dd}"
+        routes:
+          - logs
+    - opensearch:
+        hosts: ["http://opensearch:9200"]
+        insecure: true
+        index: "ss4o_metrics-otel-v1-%{yyyy.MM.dd}"
+        routes:
+          - metrics

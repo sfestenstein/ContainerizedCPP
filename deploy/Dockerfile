@@ -26,7 +26,8 @@ RUN bash deploy/fix-cyclonedds-headers.sh
 # Build only the targets needed for deployment (not tests)
 RUN cmake --preset release \
     && cmake --build --preset release \
-       --target OmniscopeDds RadarDDSWorkstation RadarDDSRadar
+       --target OmniscopeDds RadarDDSWorkstation RadarDDSRadar \
+                GrpcChatLoggerServer GrpcChatLoggerReporter GrpcChatLoggerReader
 
 # ---- Stage 2: Slim runtime image -------------------------------------------
 FROM ubuntu:24.04 AS runtime
@@ -46,34 +47,42 @@ RUN apt-get update \
 COPY --from=builder /usr/local/lib/lib*.so* /usr/local/lib/
 
 # Shared libraries: apt-installed third-party deps not present in the slim
-# runtime base (spdlog, fmt, Cyclone DDS C library, iceoryx shared-memory libs,
-# and the gRPC/protobuf/abseil/re2/c-ares family pulled in by the OpenTelemetry
-# OTLP gRPC exporter — verified against `ldd` on the built binaries).
+# runtime base (spdlog, fmt, Cyclone DDS C library, iceoryx shared-memory
+# libs, re2/c-ares pulled in by the OpenTelemetry OTLP gRPC exporter, and
+# libsystemd + its own transitive deps pulled in by the source-built gRPC's
+# optional systemd integration — verified against `ldd` on the built
+# binaries). Note: gRPC/Protobuf/Abseil themselves are NOT copied here —
+# the dev image now source-builds them as static libraries (see root
+# Dockerfile), so they're already linked into the binaries below.
 COPY --from=builder \
   /usr/lib/x86_64-linux-gnu/libspdlog.so* \
   /usr/lib/x86_64-linux-gnu/libfmt.so* \
   /usr/lib/x86_64-linux-gnu/libddsc.so* \
   /usr/lib/x86_64-linux-gnu/libiceoryx_*.so* \
-  /usr/lib/x86_64-linux-gnu/libgrpc++.so* \
-  /usr/lib/x86_64-linux-gnu/libgrpc.so* \
-  /usr/lib/x86_64-linux-gnu/libgpr.so* \
-  /usr/lib/x86_64-linux-gnu/libupb.so* \
-  /usr/lib/x86_64-linux-gnu/libaddress_sorting.so* \
-  /usr/lib/x86_64-linux-gnu/libprotobuf.so* \
+  /usr/lib/x86_64-linux-gnu/libacl.so* \
   /usr/lib/x86_64-linux-gnu/libre2.so* \
   /usr/lib/x86_64-linux-gnu/libcares.so* \
-  /usr/lib/x86_64-linux-gnu/libabsl_*.so* \
+  /usr/lib/x86_64-linux-gnu/libsystemd.so* \
+  /usr/lib/x86_64-linux-gnu/libcap.so* \
+  /usr/lib/x86_64-linux-gnu/libgcrypt.so* \
+  /usr/lib/x86_64-linux-gnu/liblz4.so* \
+  /usr/lib/x86_64-linux-gnu/liblzma.so* \
+  /usr/lib/x86_64-linux-gnu/libzstd.so* \
+  /usr/lib/x86_64-linux-gnu/libgpg-error.so* \
   /usr/local/lib/
 
 # Shared libraries: project's own (libCommonUtils.so)
 COPY --from=builder /workspace/build/release/lib/lib*.so* /usr/local/lib/
 
 # Application binaries
-COPY --from=builder /workspace/build/release/bin/OmniscopeDds       /usr/local/bin/
-COPY --from=builder /workspace/build/release/bin/RadarDDSWorkstation /usr/local/bin/
-COPY --from=builder /workspace/build/release/bin/RadarDDSRadar       /usr/local/bin/
+COPY --from=builder /workspace/build/release/bin/OmniscopeDds            /usr/local/bin/
+COPY --from=builder /workspace/build/release/bin/RadarDDSWorkstation     /usr/local/bin/
+COPY --from=builder /workspace/build/release/bin/RadarDDSRadar           /usr/local/bin/
+COPY --from=builder /workspace/build/release/bin/GrpcChatLoggerServer    /usr/local/bin/
+COPY --from=builder /workspace/build/release/bin/GrpcChatLoggerReporter /usr/local/bin/
+COPY --from=builder /workspace/build/release/bin/GrpcChatLoggerReader   /usr/local/bin/
 
 RUN ldconfig
 
 # Default: show what's available
-CMD ["bash", "-c", "echo 'Available: OmniscopeDds, RadarDDSWorkstation, RadarDDSRadar'; exec bash"]
+CMD ["bash", "-c", "echo 'Available: OmniscopeDds, RadarDDSWorkstation, RadarDDSRadar, GrpcChatLoggerServer, GrpcChatLoggerReporter, GrpcChatLoggerReader'; exec bash"]

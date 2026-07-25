@@ -1,0 +1,198 @@
+# =============================================================================
+# RadarDDSDemo Observability Stack — OpenSearch variant
+#
+# RadarDDSRadar + RadarDDSWorkstation -> OTel Collector -> Data Prepper ->
+# OpenSearch -> OpenSearch Dashboards. Same telemetry the Grafana stack in
+# ../observability shows, visualized in OpenSearch Dashboards instead.
+#
+# The demo apps run as containers alongside the stack, so the whole thing
+# comes up with one `docker compose up` — see ../observability/docker-compose.yml
+# for why (devcontainer/host networking notes).
+#
+# Usage:
+#   1. Build the dev base image (one-time, from repo root):
+#        docker build -t containerizedcpp-dev .
+#
+#   2. Start everything (apps + observability stack):
+#        docker compose -f deploy/observability-opensearch/docker-compose.yml up --build
+#
+#   3. Open OpenSearch Dashboards:
+#        http://localhost:5601
+#
+#   4. Stop everything:
+#        docker compose -f deploy/observability-opensearch/docker-compose.yml down
+# =============================================================================
+
+x-radar-common: &radar-common
+  build:
+    context: ../..
+    dockerfile: deploy/Dockerfile
+  image: containerizedcpp-deploy
+  environment:
+    # Tell Cyclone DDS to use the containerized peer-discovery config.
+    - CYCLONEDDS_URI=file:///etc/cyclonedds/cyclonedds.xml
+    # Redirect OTLP export from the default localhost:4317 to the
+    # otel-collector service on this compose network.
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+  volumes:
+    - ../cyclonedds.xml:/etc/cyclonedds/cyclonedds.xml:ro
+  networks:
+    - observability-opensearch-net
+  restart: on-failure
+  depends_on:
+    - otel-collector
+
+# Same image as x-radar-common (deploy/Dockerfile builds both app families),
+# just without the DDS-specific env/volume.
+x-chatlogger-common: &chatlogger-common
+  build:
+    context: ../..
+    dockerfile: deploy/Dockerfile
+  image: containerizedcpp-deploy
+  environment:
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+  networks:
+    - observability-opensearch-net
+  restart: on-failure
+  depends_on:
+    - otel-collector
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector:0.110.0
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      # Published to the host: RadarDDSWorkstation/RadarDDSRadar's default
+      # OTLP endpoint (localhost:4317) reaches this container directly.
+      - "4317:4317"
+    networks:
+      - observability-opensearch-net
+    depends_on:
+      - data-prepper
+
+  data-prepper:
+    image: opensearchproject/data-prepper:latest
+    container_name: data-prepper
+    volumes:
+      - ./data-prepper/pipelines.yaml:/usr/share/data-prepper/pipelines/pipelines.yaml:ro
+      - ./data-prepper/data-prepper-config.yaml:/usr/share/data-prepper/config/data-prepper-config.yaml:ro
+    ports:
+      # Optional — lets you poke around with the otlp source or the
+      # admin/health endpoint (4900) directly.
+      - "21893:21893"
+    networks:
+      - observability-opensearch-net
+    depends_on:
+      - opensearch
+
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch
+    environment:
+      # Single-node demo cluster with the security plugin disabled — skips
+      # auth entirely, mirroring the Grafana stack's anonymous-access
+      # convenience choice.
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      # Optional — lets you poke around with the REST API directly, e.g.
+      # `curl http://localhost:9200/_cat/indices?v`.
+      - "9200:9200"
+    networks:
+      - observability-opensearch-net
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards
+    environment:
+      - OPENSEARCH_HOSTS=["http://opensearch:9200"]
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    ports:
+      - "5601:5601"
+    networks:
+      - observability-opensearch-net
+    depends_on:
+      - opensearch
+
+  # One-shot: imports opensearch-dashboards/demo-dashboard.ndjson (index
+  # patterns + TSVB visualizations + a live-logs saved search + the
+  # "ContainerizedCPP Demo" dashboard combining them) via the Saved Objects
+  # API, then exits. Runs every `up`, with overwrite=true, so it's always
+  # idempotent -- no manual Dashboards setup needed before demoing.
+  dashboards-init:
+    image: curlimages/curl:latest
+    container_name: dashboards-init
+    volumes:
+      - ./opensearch-dashboards/demo-dashboard.ndjson:/data/demo-dashboard.ndjson:ro
+    networks:
+      - observability-opensearch-net
+    depends_on:
+      - opensearch-dashboards
+    restart: "no"
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        echo "dashboards-init: waiting for OpenSearch Dashboards..."
+        until curl -s http://opensearch-dashboards:5601/api/status 2>/dev/null | grep -q '"state":"green"'; do
+          sleep 3
+        done
+        echo "dashboards-init: importing demo dashboard..."
+        curl -sf -X POST "http://opensearch-dashboards:5601/api/saved_objects/_import?overwrite=true" \
+          -H "osd-xsrf: true" \
+          --form file=@/data/demo-dashboard.ndjson
+        echo "dashboards-init: done."
+
+  radar-radar:
+    <<: *radar-common
+    container_name: radar-radar
+    command: ["RadarDDSRadar", "0"]
+
+  radar-workstation:
+    <<: *radar-common
+    container_name: radar-workstation
+    command: ["RadarDDSWorkstation", "0"]
+    depends_on:
+      - otel-collector
+      - radar-radar
+
+  # gRPC chat-logger demo (src/apps/GrpcChatLogger) — a server storing the
+  # latest 100 reported messages, a reporter client sending new ones, and
+  # two reader clients polling for the latest. Reports both interface.*
+  # traffic counters (InterfaceType::GRPC) and native grpc.client.*/
+  # grpc.server.* RPC metrics through the same otel-collector pipeline.
+  chatlogger-server:
+    <<: *chatlogger-common
+    container_name: chatlogger-server
+    command: ["GrpcChatLoggerServer"]
+
+  chatlogger-reporter:
+    <<: *chatlogger-common
+    container_name: chatlogger-reporter
+    command: ["GrpcChatLoggerReporter", "chatlogger-server:50051"]
+    depends_on:
+      - otel-collector
+      - chatlogger-server
+
+  chatlogger-reader-a:
+    <<: *chatlogger-common
+    container_name: chatlogger-reader-a
+    command: ["GrpcChatLoggerReader", "ReaderA", "chatlogger-server:50051"]
+    depends_on:
+      - otel-collector
+      - chatlogger-server
+
+  chatlogger-reader-b:
+    <<: *chatlogger-common
+    container_name: chatlogger-reader-b
+    command: ["GrpcChatLoggerReader", "ReaderB", "chatlogger-server:50051"]
+    depends_on:
+      - otel-collector
+      - chatlogger-server
+
+networks:
+  observability-opensearch-net:
+    driver: bridge

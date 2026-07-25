@@ -1,0 +1,36 @@
+# =============================================================================
+# OTel Collector config for the RadarDDSDemo OpenSearch observability stack.
+#
+# Receives metrics and logs over OTLP/gRPC from RadarDDSWorkstation/
+# RadarDDSRadar (both default to localhost:4317, matching the port this
+# collector publishes to the host) and forwards everything on to
+# data-prepper's unified OTLP source, which routes logs and metrics into
+# separate OpenSearch indices.
+# =============================================================================
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+exporters:
+  # data-prepper's `otlp` source accepts OTLP/gRPC directly, so both the
+  # metrics and logs pipelines below fan into this single exporter.
+  otlp/dataprepper:
+    endpoint: data-prepper:21893
+    tls:
+      insecure: true
+
+  # Text fallback for troubleshooting: `docker compose logs -f otel-collector`
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      exporters: [otlp/dataprepper, debug]
+    logs:
+      receivers: [otlp]
+      exporters: [otlp/dataprepper, debug]

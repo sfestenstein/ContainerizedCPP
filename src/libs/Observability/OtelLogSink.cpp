@@ -47,8 +47,16 @@ protected:
    void sink_it_(const spdlog::details::log_msg &msg) override
    {
       auto logger = opentelemetry::logs::Provider::GetLoggerProvider()->GetLogger("GeneralLogger");
+      // Without an explicit timestamp argument, the emitted LogRecord's
+      // Timestamp field defaults to the epoch (1970-01-01) -- only
+      // ObservedTimestamp gets auto-populated by the SDK. spdlog::log_clock
+      // is std::chrono::system_clock, so msg.time converts directly and
+      // preserves the moment the log statement was actually issued (msg.time
+      // is captured synchronously by spdlog; sink_it_ itself may run slightly
+      // later on the async logging thread).
       logger->EmitLogRecord(toOtelSeverity(msg.level),
-                             opentelemetry::nostd::string_view(msg.payload.data(), msg.payload.size()));
+                             opentelemetry::nostd::string_view(msg.payload.data(), msg.payload.size()),
+                             msg.time);
    }
 
    // The OTel batch processor flushes on its own schedule (see

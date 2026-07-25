@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package chatlogger;
+
+// A single chat message as stored by the server.
+message ChatMessage {
+   int64 id = 1;
+   string text = 2;
+   int64 timestamp_ms = 3;
+}
+
+message ReportRequest {
+   string text = 1;
+}
+
+message ReportResponse {
+   int64 id = 1;
+}
+
+message GetLatestRequest {
+}
+
+message GetLatestResponse {
+   // Unset (has_message() == false) until the first message is reported.
+   ChatMessage message = 1;
+}
+
+service ChatLogger {
+   // Reports a new chat message; the server stores the latest 100.
+   rpc ReportMessage(ReportRequest) returns (ReportResponse);
+
+   // Returns the most recently reported chat message, if any.
+   rpc GetLatestMessage(GetLatestRequest) returns (GetLatestResponse);
+}
