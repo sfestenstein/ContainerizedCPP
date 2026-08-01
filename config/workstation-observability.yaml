@@ -1,0 +1,18 @@
+# Observability config for RadarDDSWorkstation.
+#
+# Loaded by Observability::loadMetricsOptions() (see
+# src/libs/Observability/MetricsConfig.h). serviceName is not configured
+# here -- it's set in code (Workstation.cpp) since it's the app's identity,
+# not an operational knob.
+observability:
+  # Milliseconds between periodic metric exports.
+  aggregationPeriodMs: 5000
+  # Milliseconds before a single export is cancelled. Must be less than
+  # aggregationPeriodMs.
+  exportTimeoutMs: 2500
+  # One of: grpc, http, console.
+  protocol: http
+  # Where to send OTLP exports. Points at the ObservabilityDashboard demo
+  # app's receiver (see src/apps/ObservabilityDashboard) -- run it first,
+  # then start this app.
+  endpoint: "http://localhost:4318/v1/metrics"

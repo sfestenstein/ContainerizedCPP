@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1d1c">
+<title>Observability Dashboard</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header>
+   <div class="brand">
+      <h1>Observability Dashboard</h1>
+      <span class="brand-sub">Live OTLP/HTTP metrics &mdash; no collector, no log file</span>
+   </div>
+   <div class="toolbar">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Disconnected</span>
+   </div>
+</header>
+
+<main id="services">
+   <div class="empty-state" id="emptyState">
+      Waiting for the first metrics export&hellip;<br>
+      Start <code>RadarDDSRadar</code> / <code>RadarDDSWorkstation</code> pointed at this dashboard.
+   </div>
+</main>
+
+<footer>
+   <span id="footerInfo">Connecting&hellip;</span>
+</footer>
+
+<template id="serviceCardTemplate">
+   <section class="card">
+      <div class="card-header">
+         <h2 class="service-name"></h2>
+         <span class="updated-at"></span>
+      </div>
+      <div class="card-body">
+         <div class="metric-group">
+            <div class="metric-tile">
+               <div class="metric-label">Messages sent</div>
+               <div class="metric-value messages-sent">0</div>
+            </div>
+            <div class="metric-tile">
+               <div class="metric-label">Messages received</div>
+               <div class="metric-value messages-received">0</div>
+            </div>
+            <div class="metric-tile">
+               <div class="metric-label">Bytes sent</div>
+               <div class="metric-value bytes-sent">0</div>
+            </div>
+            <div class="metric-tile">
+               <div class="metric-label">Bytes received</div>
+               <div class="metric-value bytes-received">0</div>
+            </div>
+         </div>
+
+         <div class="metric-group">
+            <div class="metric-tile wide">
+               <div class="metric-label">Latency (avg)</div>
+               <div class="metric-value latency-value">&mdash;</div>
+               <canvas class="sparkline" width="240" height="40"></canvas>
+            </div>
+         </div>
+
+         <div class="metric-group">
+            <div class="metric-tile">
+               <div class="metric-label">CPU</div>
+               <div class="bar-track"><div class="bar-fill cpu-bar"></div></div>
+               <div class="metric-subvalue cpu-value">0%</div>
+            </div>
+            <div class="metric-tile">
+               <div class="metric-label">Memory</div>
+               <div class="bar-track"><div class="bar-fill mem-bar"></div></div>
+               <div class="metric-subvalue mem-value">0 MB</div>
+            </div>
+         </div>
+
+         <div class="metric-group">
+            <div class="metric-label full-width">Active subscribers</div>
+            <div class="topic-list"></div>
+         </div>
+      </div>
+   </section>
+</template>
+
+<script src="/app.js"></script>
+</body>
+</html>

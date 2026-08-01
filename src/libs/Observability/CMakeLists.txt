@@ -12,10 +12,12 @@ project(Observability CXX)
 
 find_package(opentelemetry-cpp CONFIG REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 add_library(${PROJECT_NAME} STATIC
    MetricsPipeline.cpp
    MetricsExporterFactory.cpp
+   MetricsConfig.cpp
    OtelInterfaceMetrics.cpp
    ProcessSampler.cpp
    ProcessMetrics.cpp
@@ -37,6 +39,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
    spdlog::spdlog
+   yaml-cpp::yaml-cpp
    opentelemetry-cpp::metrics
    opentelemetry-cpp::otlp_grpc_metrics_exporter
    opentelemetry-cpp::otlp_http_metric_exporter

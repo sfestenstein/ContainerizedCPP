@@ -84,17 +84,23 @@ std::shared_ptr<opentelemetry::sdk::metrics::MeterProvider> initMetrics(const Me
    namespace metrics_sdk = opentelemetry::sdk::metrics;
    namespace metrics_api = opentelemetry::metrics;
 
-   auto exporter = createMetricExporter(options.protocol);
+   auto exporter = createMetricExporter(options.protocol, options.endpoint);
 
    metrics_sdk::PeriodicExportingMetricReaderOptions readerOptions;
    readerOptions.export_interval_millis = options.aggregationPeriod;
    // Must be strictly less than export_interval_millis -- the SDK silently
    // discards both and falls back to its own defaults (60s interval) if
-   // they're equal, which means aggregationPeriod was never actually being
-   // honored (the pipeline only ever emitted data via ForceFlush at
-   // shutdown, not on the configured period). See "Invalid configuration"
-   // warning this used to log at startup.
-   readerOptions.export_timeout_millis = options.aggregationPeriod / 2;
+   // they're equal or timeout is larger, which means aggregationPeriod
+   // would never actually be honored (the pipeline would only ever emit
+   // data via ForceFlush at shutdown, not on the configured period). The
+   // config-file loader (MetricsConfig.h) validates this and fails fast;
+   // this clamp is defense-in-depth for MetricsOptions built directly.
+   auto exportTimeout = options.exportTimeout;
+   if (exportTimeout <= std::chrono::milliseconds::zero() || exportTimeout >= options.aggregationPeriod)
+   {
+      exportTimeout = options.aggregationPeriod / 2;
+   }
+   readerOptions.export_timeout_millis = exportTimeout;
    auto reader = metrics_sdk::PeriodicExportingMetricReaderFactory::Create(std::move(exporter), readerOptions);
 
    auto context =

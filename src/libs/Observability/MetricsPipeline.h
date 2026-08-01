@@ -23,6 +23,15 @@ struct MetricsOptions
    std::string serviceName;
    std::chrono::milliseconds aggregationPeriod{5000};
    ExporterProtocol protocol{ExporterProtocol::Grpc};
+   /// How long a single export can run before being cancelled. Must be less
+   /// than aggregationPeriod -- see MetricsConfig.h's loadMetricsOptions()
+   /// for the config-file-driven path, which validates this at load time.
+   std::chrono::milliseconds exportTimeout{2500};
+   /// Explicit OTLP endpoint (e.g. "http://localhost:8080/v1/metrics" for
+   /// Http, or "localhost:4317" for Grpc). Empty means "let the SDK use its
+   /// own default / the OTEL_EXPORTER_OTLP_ENDPOINT environment variable."
+   /// Ignored for Console.
+   std::string endpoint;
 };
 
 /**

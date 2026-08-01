@@ -8,7 +8,7 @@ namespace Observability
 {
 
 std::unique_ptr<opentelemetry::sdk::metrics::PushMetricExporter>
-createMetricExporter(ExporterProtocol protocol)
+createMetricExporter(ExporterProtocol protocol, const std::string &endpoint)
 {
    namespace otlp = opentelemetry::exporter::otlp;
    namespace metrics_exporter = opentelemetry::exporter::metrics;
@@ -18,6 +18,14 @@ createMetricExporter(ExporterProtocol protocol)
    case ExporterProtocol::Http:
    {
       otlp::OtlpHttpMetricExporterOptions options;
+      // JSON rather than the default binary protobuf -- lets lightweight
+      // receivers (e.g. a demo dashboard) parse the export with a plain
+      // JSON library instead of needing protobuf tooling.
+      options.content_type = otlp::HttpRequestContentType::kJson;
+      if (!endpoint.empty())
+      {
+         options.url = endpoint;
+      }
       return otlp::OtlpHttpMetricExporterFactory::Create(options);
    }
    case ExporterProtocol::Console:
@@ -26,6 +34,10 @@ createMetricExporter(ExporterProtocol protocol)
    default:
    {
       otlp::OtlpGrpcMetricExporterOptions options;
+      if (!endpoint.empty())
+      {
+         options.endpoint = endpoint;
+      }
       return otlp::OtlpGrpcMetricExporterFactory::Create(options);
    }
    }

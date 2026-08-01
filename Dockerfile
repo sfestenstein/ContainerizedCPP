@@ -63,6 +63,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   zlib1g-dev \
   libtinyxml2-dev \
   libspdlog-dev \
+  libyaml-cpp-dev \
   libiceoryx-binding-c-dev \
   cyclonedds-dev \
   cyclonedds-tools \
