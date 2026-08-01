@@ -3,8 +3,9 @@
 
 // Project headers
 #include "CommonUtils/GeneralLogger.h"
+#include "CycloneDDS/DDSMessageTraits.h"
 #include "CycloneDDS/DDSTopicConfig.h"
-#include "Observability/InterfaceMetrics.h"
+#include "Observability/MetricsRegistry.h"
 
 // Cyclone DDS C++ headers
 #include <dds/dds.hpp>
@@ -72,12 +73,15 @@ public:
       , _interfaceName(participantName)
    {
       _waitSet.attach_condition(_stopGuard);
+      Observability::metrics().registerActiveProbe(_interfaceName, Observability::InterfaceType::DDS_INTERFACE,
+                                                     _entry.topicName, &_running);
       GPINFO("DDSSubscriber created: domain={}, topic={}, name={}",
              domainId, _entry.topicName, participantName);
    }
 
    ~DDSSubscriber()
    {
+      Observability::metrics().unregisterActiveProbe(&_running);
       stop();
    }
 
@@ -188,8 +192,16 @@ private:
                   // sizeof(T) is a stand-in for the real wire size -- wrong
                   // for variable-length IDL types (strings/sequences), but
                   // good enough to prove the metrics pipeline end-to-end.
-                  Observability::metrics().recordReceived(_interfaceName, Observability::InterfaceType::DDS,
+                  Observability::metrics().recordReceived(_interfaceName, Observability::InterfaceType::DDS_INTERFACE,
                                                             _entry.topicName, sizeof(T));
+
+                  auto latency = extractLatencySinceSend(sample.data());
+                  if (latency)
+                  {
+                     Observability::metrics().recordLatency(_interfaceName, Observability::InterfaceType::DDS_INTERFACE,
+                                                              _entry.topicName, *latency);
+                  }
+
                   _handler(sample.data());
                }
             }

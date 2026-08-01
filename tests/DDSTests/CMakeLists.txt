@@ -27,6 +27,9 @@ target_link_libraries(${PROJECT_NAME}
       CycloneDDSLib
       DDSTestMessages
       CommonUtils
+      # Already transitive via CycloneDDSLib -- listed explicitly now that
+      # tests use Observability::FakeInterfaceMetrics/ScopedMetrics directly.
+      Observability
       GTest::gtest
       GTest::gmock
 )

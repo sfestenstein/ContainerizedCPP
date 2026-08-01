@@ -84,10 +84,14 @@ endif()
 find_package(CycloneDDS-CXX REQUIRED)
 find_package(Crow REQUIRED)
 
-# opentelemetry-cpp's exported CMake config references the Protobuf::libprotobuf
-# and gRPC::grpc++ imported targets directly, so they must be resolved first.
+# opentelemetry-cpp's exported CMake config references the Protobuf::libprotobuf,
+# gRPC::grpc++, CURL::libcurl (via http_client_curl, used by the OTLP/HTTP
+# exporter), and nlohmann_json::nlohmann_json (via otlp_http_client) imported
+# targets directly, so they must be resolved first.
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
+find_package(CURL REQUIRED)
+find_package(nlohmann_json REQUIRED)
 find_package(opentelemetry-cpp CONFIG REQUIRED)
 
 if(BUILD_TESTS)
@@ -127,6 +131,7 @@ if(BUILD_TESTS)
    add_subdirectory(tests/CommonUtilsTests)
    add_subdirectory(tests/DDSTests)
    add_subdirectory(tests/OmniscopeDdsTests)
+   add_subdirectory(tests/ObservabilityTests)
 
    # Unified coverage target — runs all tests, generates a combined report
    include(Coverage)

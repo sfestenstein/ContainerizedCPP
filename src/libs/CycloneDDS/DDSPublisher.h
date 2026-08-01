@@ -4,7 +4,7 @@
 // Project headers
 #include "CommonUtils/GeneralLogger.h"
 #include "CycloneDDS/DDSTopicConfig.h"
-#include "Observability/InterfaceMetrics.h"
+#include "Observability/MetricsRegistry.h"
 
 // Cyclone DDS C++ headers
 #include <dds/dds.hpp>
@@ -78,7 +78,7 @@ public:
       // variable-length IDL types (strings/sequences), but good enough to
       // prove the metrics pipeline end-to-end. A real byte count needs the
       // CDR-serialized size, not the in-memory struct size.
-      Observability::metrics().recordSent(_interfaceName, Observability::InterfaceType::DDS,
+      Observability::metrics().recordSent(_interfaceName, Observability::InterfaceType::DDS_INTERFACE,
                                            _entry.topicName, sizeof(T));
    }
 

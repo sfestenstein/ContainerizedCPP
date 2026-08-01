@@ -10,11 +10,14 @@
 #include "CycloneDDS/DDSPublisher.h"
 #include "CycloneDDS/DDSSubscriber.h"
 #include "CycloneDDS/DDSTopicConfig.h"
+#include "Observability/FakeInterfaceMetrics.h"
+#include "Observability/ScopedMetrics.h"
 
 #include "TestMessage.hpp"
 
 #include <atomic>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 // Use a high domain ID to isolate test traffic
@@ -156,4 +159,58 @@ TEST_F(DDSSubscriberTest, TopicEntry_ReturnsConfiguredEntry)
       TEST_DOMAIN_ID, makeEntry("CheckTopic"), "EntrySub");
 
    EXPECT_EQ(sub.topicEntry().topicName, "CheckTopic");
+}
+
+TEST_F(DDSSubscriberTest, EndToEnd_RecordsMetrics_LatenciesStayEmptyForHeaderlessMessage)
+{
+   // DDSSubscriber takes no metrics constructor argument -- it reaches
+   // Observability::metrics() directly (see DESIGN.md), so tests install a
+   // fake into that global registry for the scope of this test rather than
+   // injecting one.
+   auto fake = std::make_shared<Observability::FakeInterfaceMetrics>();
+   Observability::ScopedMetrics guard(fake);
+
+   constexpr uint32_t METRICS_DOMAIN = 96;
+   auto entry = makeEntry("MetricsE2ETopic");
+
+   std::atomic<int> receivedCount{0};
+
+   CycloneDDS::DDSSubscriber<dds_test::TestMessage> sub(METRICS_DOMAIN, entry, "MetricsE2ESub");
+   sub.subscribe([&](const dds_test::TestMessage &) { receivedCount.fetch_add(1); });
+   sub.start();
+
+   // Give participant time to discover.
+   std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+   CycloneDDS::DDSPublisher<dds_test::TestMessage> pub(METRICS_DOMAIN, entry, "MetricsE2EPub");
+
+   // Give publisher participant time to discover the subscriber.
+   std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+   dds_test::TestMessage msg;
+   msg.id("metrics-e2e-sensor");
+   msg.name("Metrics E2E Test");
+   msg.value(1.0);
+   msg.timestamp_ms(1);
+
+   pub.publish(msg);
+
+   auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+   while (receivedCount.load() == 0 && std::chrono::steady_clock::now() < deadline)
+   {
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+   }
+
+   sub.stop();
+
+   ASSERT_GE(receivedCount.load(), 1);
+   ASSERT_FALSE(fake->received.empty());
+   EXPECT_EQ(fake->received[0].interfaceName, "MetricsE2ESub");
+   EXPECT_EQ(fake->received[0].type, Observability::InterfaceType::DDS_INTERFACE);
+   EXPECT_EQ(fake->received[0].topic, "MetricsE2ETopic");
+
+   // dds_test::TestMessage has no header/timestamp field, so the compile-time
+   // trait in DDSMessageTraits.h must degrade safely: no latency ever gets
+   // recorded for a message type that doesn't opt in.
+   EXPECT_TRUE(fake->latencies.empty());
 }

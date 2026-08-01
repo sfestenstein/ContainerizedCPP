@@ -24,8 +24,9 @@
 #include "RadarAlert.hpp"
 #include "RadarTrack.hpp"
 
-#include "Observability/InterfaceMetrics.h"
+#include "Observability/MetricsPipeline.h"
 #include "Observability/OtelLogSink.h"
+#include "Observability/ProcessMetrics.h"
 
 #include <atomic>
 #include <chrono>
@@ -89,9 +90,10 @@ int main(int argc, char *argv[])
    CommonUtils::GeneralLogger logger;
    logger.init("RadarDDSRadar");
 
-   auto otelMeterProvider = Observability::init({.serviceName = "RadarDDSRadar"});
+   auto otelMeterProvider = Observability::initMetrics({.serviceName = "RadarDDSRadar"});
    auto otelLoggerProvider = Observability::initLogging({.serviceName = "RadarDDSRadar"});
    CommonUtils::GeneralLogger::addSink(Observability::createOtelLogSink());
+   Observability::ProcessMetrics processMetrics(otelMeterProvider->GetMeter("Observability"));
 
    uint32_t domainId = 0;
    bool stressMode = false;
