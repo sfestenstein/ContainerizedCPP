@@ -28,6 +28,7 @@
 #include <chrono>
 #include <csignal>
 #include <cstdint>
+#include <exception>
 #include <memory>
 #include <thread>
 
@@ -70,24 +71,71 @@ static void printBanner()
    GPINFO("  RadarAlert           : Reliable,    TransientLocal, KeepAll(<=50/instance)");
 }
 
+static void printUsage(const char *programName)
+{
+   GPINFO("Usage: {} [-d <domain_id>] [-c <metrics_config_path>]", programName);
+}
+
 // NOLINTNEXTLINE
 int main(int argc, char *argv[])
 {
    (void)std::signal(SIGINT, signalHandler);
    (void)std::signal(SIGTERM, signalHandler);
 
+   uint32_t domainId = 0;
+   std::string metricsConfigPath;
+
+   for (int i = 1; i < argc; ++i)
+   {
+      const std::string arg = argv[i];
+      if (arg == "-d")
+      {
+         if (i + 1 >= argc)
+         {
+            GPERROR("Missing value for -d");
+            printUsage(argv[0]);
+            return 1;
+         }
+         domainId = static_cast<uint32_t>(std::stoul(argv[++i]));
+      }
+      else if (arg == "-c")
+      {
+         if (i + 1 >= argc)
+         {
+            GPERROR("Missing value for -c");
+            printUsage(argv[0]);
+            return 1;
+         }
+         metricsConfigPath = argv[++i];
+      }
+      else
+      {
+         GPERROR("Unknown argument: {}", arg);
+         printUsage(argv[0]);
+         return 1;
+      }
+   }
+
    CommonUtils::GeneralLogger logger;
    logger.init("RadarDDSWorkstation");
 
-   auto otelMeterProvider = Observability::init({.serviceName = "RadarDDSWorkstation"});
+   auto metricsConfig = Observability::MetricsConfig::defaultsForService("RadarDDSWorkstation");
+   if (!metricsConfigPath.empty())
+   {
+      try
+      {
+         metricsConfig = Observability::MetricsConfig::fromYamlFile(metricsConfigPath);
+         metricsConfig.setServiceName("RadarDDSWorkstation");
+      }
+      catch (const std::exception &ex)
+      {
+         GPWARN("Failed to load metrics config '{}': {}. Using defaults.", metricsConfigPath, ex.what());
+      }
+   }
+
+   auto otelMeterProvider = Observability::init(metricsConfig);
    auto otelLoggerProvider = Observability::initLogging({.serviceName = "RadarDDSWorkstation"});
    CommonUtils::GeneralLogger::addSink(Observability::createOtelLogSink());
-
-   uint32_t domainId = 0;
-   if (argc > 1)
-   {
-      domainId = static_cast<uint32_t>(std::stoul(argv[1]));
-   }
    GPINFO("Using DDS domain ID: {}", domainId);
    printBanner();
 

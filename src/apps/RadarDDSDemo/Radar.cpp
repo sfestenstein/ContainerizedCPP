@@ -31,6 +31,7 @@
 #include <chrono>
 #include <csignal>
 #include <cstdint>
+#include <exception>
 #include <memory>
 #include <random>
 #include <string>
@@ -66,6 +67,11 @@ static void printBanner()
    GPINFO("  RadarAlert           : Reliable,    TransientLocal, KeepAll(<=50/instance)");
 }
 
+static void printUsage(const char *programName)
+{
+   GPINFO("Usage: {} [-d <domain_id>] [-c <metrics_config_path>] [--stress]", programName);
+}
+
 namespace
 {
 
@@ -86,27 +92,65 @@ int main(int argc, char *argv[])
    (void)std::signal(SIGINT, signalHandler);
    (void)std::signal(SIGTERM, signalHandler);
 
-   CommonUtils::GeneralLogger logger;
-   logger.init("RadarDDSRadar");
-
-   auto otelMeterProvider = Observability::init({.serviceName = "RadarDDSRadar"});
-   auto otelLoggerProvider = Observability::initLogging({.serviceName = "RadarDDSRadar"});
-   CommonUtils::GeneralLogger::addSink(Observability::createOtelLogSink());
-
    uint32_t domainId = 0;
    bool stressMode = false;
+   std::string metricsConfigPath;
+
    for (int i = 1; i < argc; ++i)
    {
-      std::string arg = argv[i];
+      const std::string arg = argv[i];
       if (arg == "--stress")
       {
          stressMode = true;
       }
+      else if (arg == "-d")
+      {
+         if (i + 1 >= argc)
+         {
+            GPERROR("Missing value for -d");
+            printUsage(argv[0]);
+            return 1;
+         }
+         domainId = static_cast<uint32_t>(std::stoul(argv[++i]));
+      }
+      else if (arg == "-c")
+      {
+         if (i + 1 >= argc)
+         {
+            GPERROR("Missing value for -c");
+            printUsage(argv[0]);
+            return 1;
+         }
+         metricsConfigPath = argv[++i];
+      }
       else
       {
-         domainId = static_cast<uint32_t>(std::stoul(arg));
+         GPERROR("Unknown argument: {}", arg);
+         printUsage(argv[0]);
+         return 1;
       }
    }
+
+   CommonUtils::GeneralLogger logger;
+   logger.init("RadarDDSRadar");
+
+   auto metricsConfig = Observability::MetricsConfig::defaultsForService("RadarDDSRadar");
+   if (!metricsConfigPath.empty())
+   {
+      try
+      {
+         metricsConfig = Observability::MetricsConfig::fromYamlFile(metricsConfigPath);
+         metricsConfig.setServiceName("RadarDDSRadar");
+      }
+      catch (const std::exception &ex)
+      {
+         GPWARN("Failed to load metrics config '{}': {}. Using defaults.", metricsConfigPath, ex.what());
+      }
+   }
+
+   auto otelMeterProvider = Observability::init(metricsConfig);
+   auto otelLoggerProvider = Observability::initLogging({.serviceName = "RadarDDSRadar"});
+   CommonUtils::GeneralLogger::addSink(Observability::createOtelLogSink());
    GPINFO("Using DDS domain ID: {}, stress mode: {}", domainId, stressMode);
    printBanner();
 

@@ -1,0 +1,22 @@
+metrics:
+  service_name: RadarDDSRadar
+  meter_name: Observability
+  meter_version: 1.0.0
+  aggregation_period_ms: 5000
+  timeout_ms: 3000
+
+  resource_attributes:
+    service.namespace: ContainerizedCPP
+    deployment.environment: dev
+
+  exporter:
+    protocol: grpc
+    endpoint: http://otel-collector:4317
+    insecure: true
+    headers:
+      x-tenant-id: demo
+
+# Protocol choices:
+# - grpc    endpoint example: http://otel-collector:4317
+# - http    endpoint example: http://otel-collector:4318/v1/metrics
+# - console endpoint ignored

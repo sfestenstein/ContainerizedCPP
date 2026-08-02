@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <meta name="theme-color" content="#0f1d1c">
+   <title>Observability Dashboard</title>
+   <link rel="stylesheet" href="/style.css">
+</head>
+
+<body>
+
+   <header>
+      <div class="brand">
+         <h1>Observability Dashboard</h1>
+         <span class="brand-sub">Live OTLP/HTTP metrics &mdash; no collector, no log file</span>
+      </div>
+      <div class="toolbar">
+         <span class="status-dot" id="statusDot"></span>
+         <span id="statusText">Disconnected</span>
+      </div>
+   </header>
+
+   <main id="services">
+      <div class="empty-state" id="emptyState">
+         Waiting for the first metrics export&hellip;<br>
+         Start <code>RadarDDSRadar</code> / <code>RadarDDSWorkstation</code> pointed at this dashboard.
+      </div>
+   </main>
+
+   <footer>
+      <span id="footerInfo">Connecting&hellip;</span>
+   </footer>
+
+   <template id="serviceCardTemplate">
+      <section class="card">
+         <div class="card-header">
+            <h2 class="service-name"></h2>
+            <span class="updated-at"></span>
+         </div>
+         <div class="card-body">
+            <div class="metric-group">
+               <div class="metric-tile">
+                  <div class="metric-label">Messages sent</div>
+                  <div class="metric-value messages-sent">0</div>
+               </div>
+               <div class="metric-tile">
+                  <div class="metric-label">Messages received</div>
+                  <div class="metric-value messages-received">0</div>
+               </div>
+               <div class="metric-tile">
+                  <div class="metric-label">Bytes sent</div>
+                  <div class="metric-value bytes-sent">0</div>
+               </div>
+               <div class="metric-tile">
+                  <div class="metric-label">Bytes received</div>
+                  <div class="metric-value bytes-received">0</div>
+               </div>
+            </div>
+            <div class="metric-section throughput-section" style="display:none">
+               <div class="metric-section-label">Throughput (avg)</div>
+               <div class="metric-group">
+                  <div class="metric-tile">
+                     <div class="metric-label">Bytes/call sent</div>
+                     <div class="metric-value avg-bytes-sent-per-call">—</div>
+                  </div>
+                  <div class="metric-tile">
+                     <div class="metric-label">Bytes/call received</div>
+                     <div class="metric-value avg-bytes-received-per-call">—</div>
+                  </div>
+                  <div class="metric-tile">
+                     <div class="metric-label">Send rate</div>
+                     <div class="metric-value avg-bytes-sent-per-sec">—</div>
+                  </div>
+                  <div class="metric-tile">
+                     <div class="metric-label">Receive rate</div>
+                     <div class="metric-value avg-bytes-received-per-sec">—</div>
+                  </div>
+               </div>
+            </div>
+            <div class="metric-section process-section" style="display:none">
+               <div class="metric-section-label">Process</div>
+               <div class="metric-group">
+                  <div class="metric-tile">
+                     <div class="metric-label">CPU</div>
+                     <div class="metric-value process-cpu">—</div>
+                  </div>
+                  <div class="metric-tile">
+                     <div class="metric-label">RSS memory</div>
+                     <div class="metric-value process-rss">—</div>
+                  </div>
+                  <div class="metric-tile">
+                     <div class="metric-label">Virtual memory</div>
+                     <div class="metric-value process-vms">—</div>
+                  </div>
+                  <div class="metric-tile">
+                     <div class="metric-label">Threads</div>
+                     <div class="metric-value process-threads">—</div>
+                  </div>
+               </div>
+            </div>
+            <div class="metric-section gpu-section" style="display:none">
+               <div class="metric-section-label">GPU (sysfs / card0)</div>
+               <div class="metric-group">
+                  <div class="metric-tile">
+                     <div class="metric-label">Utilization</div>
+                     <div class="metric-value gpu-utilization">—</div>
+                  </div>
+                  <div class="metric-tile">
+                     <div class="metric-label">Memory used</div>
+                     <div class="metric-value gpu-memory-used">—</div>
+                  </div>
+                  <div class="metric-tile">
+                     <div class="metric-label">Memory total</div>
+                     <div class="metric-value gpu-memory-total">—</div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </section>
+   </template>
+
+   <script src="/app.js"></script>
+</body>
+
+</html>

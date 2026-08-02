@@ -88,6 +88,8 @@ find_package(Crow REQUIRED)
 # and gRPC::grpc++ imported targets directly, so they must be resolved first.
 find_package(Protobuf REQUIRED)
 find_package(gRPC REQUIRED)
+find_package(CURL REQUIRED)
+find_package(nlohmann_json REQUIRED)
 find_package(opentelemetry-cpp CONFIG REQUIRED)
 
 if(BUILD_TESTS)

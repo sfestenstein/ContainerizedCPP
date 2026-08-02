@@ -188,8 +188,8 @@ private:
                   // sizeof(T) is a stand-in for the real wire size -- wrong
                   // for variable-length IDL types (strings/sequences), but
                   // good enough to prove the metrics pipeline end-to-end.
-                  Observability::metrics().recordReceived(_interfaceName, Observability::InterfaceType::DDS,
-                                                            _entry.topicName, sizeof(T));
+                  Observability::metrics().recordReceived(1, sizeof(T), _interfaceName.c_str(),
+                                                         Observability::DDS_INTERFACE);
                   _handler(sample.data());
                }
             }

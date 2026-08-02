@@ -4,34 +4,24 @@
 // OpenTelemetry headers
 #include <opentelemetry/sdk/metrics/meter_provider.h>
 
+// Project headers
+#include "Observability/MetricsConfig.h"
+
 // System headers
 #include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
-#include <string_view>
 
 namespace Observability
 {
 
 /**
- * @brief The kind of transport an interface being measured is using.
+ * @brief String constants describing the transport kind being measured.
  */
-enum class InterfaceType
-{
-   DDS,
-   GRPC,
-   ZMQ
-};
-
-/**
- * @brief Options controlling the OTel SDK pipeline built by init().
- */
-struct MetricsOptions
-{
-   std::string serviceName;
-   std::chrono::milliseconds aggregationPeriod{5000};
-};
+constexpr char DDS_INTERFACE[] = "DDS";
+constexpr char GRPC_INTERFACE[] = "GRPC";
+constexpr char ZMQ_INTERFACE[] = "ZMQ";
 
 /**
  * @brief Abstract recording surface for interface traffic metrics.
@@ -48,38 +38,44 @@ public:
    /**
     * @brief Record one message sent on an interface.
     *
-    * @param interfaceName Human-readable name of the interface instance (e.g. "RadarTrackPub")
-    * @param type           Transport kind (DDS, GRPC, ZMQ)
-    * @param topic          Topic/channel name the message was sent on
+    * @param messageCount   Number of messages represented by this event
     * @param bytes          Size of the message in bytes
+    * @param interfaceName  Human-readable name of the interface instance (e.g. "RadarTrackPub")
+    * @param type           Transport kind (DDS, GRPC, ZMQ)
+    * @param userAttribute  Optional low-cardinality caller-controlled attribute
     */
-   virtual void recordSent(std::string_view interfaceName, InterfaceType type,
-                            std::string_view topic, uint64_t bytes) = 0;
+   virtual void recordSent(uint64_t messageCount, uint64_t bytes,
+                           const char *interfaceName,
+                           const char *type,
+                           const char *userAttribute = "") = 0;
 
    /**
     * @brief Record one message received on an interface.
     *
-    * @param interfaceName Human-readable name of the interface instance (e.g. "WorkstationTrackSub")
-    * @param type           Transport kind (DDS, GRPC, ZMQ)
-    * @param topic          Topic/channel name the message was received on
+    * @param messageCount   Number of messages represented by this event
     * @param bytes          Size of the message in bytes
+    * @param interfaceName  Human-readable name of the interface instance (e.g. "WorkstationTrackSub")
+    * @param type           Transport kind (DDS, GRPC, ZMQ)
+    * @param userAttribute  Optional low-cardinality caller-controlled attribute
     */
-   virtual void recordReceived(std::string_view interfaceName, InterfaceType type,
-                                std::string_view topic, uint64_t bytes) = 0;
+   virtual void recordReceived(uint64_t messageCount, uint64_t bytes,
+                               const char *interfaceName,
+                               const char *type,
+                               const char *userAttribute = "") = 0;
 };
 
 /**
  * @brief Build the OTel metrics SDK pipeline and register it globally.
  *
- * Builds an OTLP/gRPC exporter, wraps it in a periodic reader (exporting
- * every options.aggregationPeriod), and registers the resulting
+ * Builds a metrics exporter from config (OTLP/gRPC, OTLP/HTTP, or console),
+ * wraps it in a periodic reader (exporting every config.aggregationPeriod()),
+ * and registers the resulting
  * MeterProvider globally. Call once at process startup. Returns the
  * concrete SDK provider so main() can ForceFlush() it on exit.
  *
- * @param options Service name (used as the "service.name" resource
- *                attribute) and export aggregation period.
+ * @param config YAML-backed metrics runtime configuration.
  */
-std::shared_ptr<opentelemetry::sdk::metrics::MeterProvider> init(const MetricsOptions &options);
+std::shared_ptr<opentelemetry::sdk::metrics::MeterProvider> init(const MetricsConfig &config);
 
 /**
  * @brief Process-wide accessor for the recording interface.

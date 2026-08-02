@@ -59,9 +59,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   libsystemd-dev \
   libasio-dev \
   libssl-dev \
+  libcurl4-openssl-dev \
   zlib1g-dev \
   libtinyxml2-dev \
   libspdlog-dev \
+  libyaml-cpp-dev \
   libiceoryx-binding-c-dev \
   cyclonedds-dev \
   cyclonedds-tools \
@@ -125,7 +127,7 @@ RUN git clone --recurse-submodules --shallow-submodules --depth 1 \
   -DWITH_EXAMPLES=OFF \
   -DOPENTELEMETRY_INSTALL=ON \
   -DWITH_OTLP_GRPC=ON \
-  -DWITH_OTLP_HTTP=OFF \
+  -DWITH_OTLP_HTTP=ON \
   -DCMAKE_PREFIX_PATH=/usr:/usr/local \
   && cmake --build /tmp/opentelemetry-cpp/build \
   && cmake --install /tmp/opentelemetry-cpp/build \

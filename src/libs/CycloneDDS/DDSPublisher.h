@@ -78,8 +78,8 @@ public:
       // variable-length IDL types (strings/sequences), but good enough to
       // prove the metrics pipeline end-to-end. A real byte count needs the
       // CDR-serialized size, not the in-memory struct size.
-      Observability::metrics().recordSent(_interfaceName, Observability::InterfaceType::DDS,
-                                           _entry.topicName, sizeof(T));
+      Observability::metrics().recordSent(1, sizeof(T), _interfaceName.c_str(),
+                        Observability::DDS_INTERFACE);
    }
 
    /**

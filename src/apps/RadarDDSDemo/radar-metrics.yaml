@@ -1,0 +1,38 @@
+metrics:
+   service_name: RadarDDSRadar
+   meter_name: Observability
+   meter_version: 1.0.0
+   aggregation_period_ms: 5000
+   timeout_ms: 3000
+
+   resource_attributes:
+      service.namespace: RadarDDSDemo
+      deployment.environment: dev
+      app.role: radar
+
+   exporter:
+      protocol: http
+      endpoint: http://localhost:4318/v1/metrics
+      insecure: true
+      headers: {}
+
+   interface_histograms:
+      bytes_per_call: true
+      bytes_per_second: true
+
+   process_metrics:
+      enabled: true
+      sampling_period_ms: 1000
+      gauges:
+         cpu_utilization: true
+         memory_rss: true
+         memory_vms: true
+         thread_count: true
+
+   gpu_metrics:
+      enabled: true
+      sampling_period_ms: 1000
+      gauges:
+         utilization: true
+         memory_used: true
+         memory_total: true

@@ -27,6 +27,7 @@ Checks: >
   -modernize-use-trailing-return-type,
   -modernize-use-scoped-lock,
   -modernize-pass-by-value,
+  -modernize-avoid-c-arrays,
   -readability-braces-around-statements,
   -readability-function-cognitive-complexity,
   -readability-magic-numbers,
