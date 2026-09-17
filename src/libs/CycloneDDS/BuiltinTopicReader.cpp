@@ -4,8 +4,11 @@
 
 #include <dds/dds.h>
 
+#include <array>
 #include <chrono>
 #include <cstring>
+#include <string_view>
+#include <sstream>
 
 namespace CycloneDDS
 {
@@ -43,19 +46,102 @@ static int32_t historyDepthOf(const dds_qos_t *qos)
    return kind == DDS_HISTORY_KEEP_ALL ? -1 : depth;
 }
 
+static std::string guidToString(const dds_guid_t &guid)
+{
+   static constexpr char HEX[] = "0123456789abcdef";
+   std::string out;
+   out.reserve(36);
+   for (size_t i = 0; i < 16; ++i)
+   {
+      const uint8_t b = guid.v[i];
+      out.push_back(HEX[(b >> 4U) & 0x0FU]);
+      out.push_back(HEX[b & 0x0FU]);
+      if (i == 3 || i == 5 || i == 7 || i == 9)
+         out.push_back('-');
+   }
+   return out;
+}
+
+static std::string endpointNameFromQos(const dds_qos_t *qos)
+{
+   char *entityName = nullptr;
+   if (dds_qget_entity_name(qos, &entityName) && entityName != nullptr)
+   {
+      std::string name = entityName;
+      dds_free(entityName);
+      return name;
+   }
+
+   static constexpr const char *PROPERTY_KEYS[] = {
+      "app_name",
+      "application_name",
+      "dds.application.name",
+      "process_name",
+      "program_name",
+   };
+
+   for (const char *key : PROPERTY_KEYS)
+   {
+      char *value = nullptr;
+      if (dds_qget_prop(qos, key, &value) && value != nullptr)
+      {
+         std::string name = value;
+         dds_free(value);
+         return name;
+      }
+   }
+
+   void *userDataRaw = nullptr;
+   size_t userDataSize = 0;
+   if (dds_qget_userdata(qos, &userDataRaw, &userDataSize) && userDataRaw != nullptr
+       && userDataSize > 0)
+   {
+      std::string userData(static_cast<const char *>(userDataRaw), userDataSize);
+      dds_free(userDataRaw);
+
+      auto extractField = [&](std::string_view key) -> std::string
+      {
+         const std::string marker = std::string(key) + "=";
+         const size_t begin = userData.find(marker);
+         if (begin == std::string::npos)
+            return {};
+
+         const size_t valueBegin = begin + marker.size();
+         size_t valueEnd = userData.find(';', valueBegin);
+         if (valueEnd == std::string::npos)
+            valueEnd = userData.size();
+
+         return userData.substr(valueBegin, valueEnd - valueBegin);
+      };
+
+      if (auto appName = extractField("app_name"); !appName.empty())
+         return appName;
+
+      if (auto endpointName = extractField("endpoint_name"); !endpointName.empty())
+         return endpointName;
+
+      if (auto applicationName = extractField("application_name"); !applicationName.empty())
+         return applicationName;
+   }
+
+   return {};
+}
+
 // ---------------------------------------------------------------------------
 //  BuiltinTopicReader
 // ---------------------------------------------------------------------------
 
-BuiltinTopicReader::BuiltinTopicReader(dds_entity_t participant,
+BuiltinTopicReader::BuiltinTopicReader(dds_entity_t participant, dds_entity_t builtinTopic,
                                        TopicDiscoveryCallback callback)
-   : _reader(dds_create_reader(participant, DDS_BUILTIN_TOPIC_DCPSPUBLICATION,
-                               nullptr, nullptr))
+   : _reader(dds_create_reader(participant, builtinTopic, nullptr, nullptr))
+   , _role(builtinTopic == DDS_BUILTIN_TOPIC_DCPSSUBSCRIPTION
+              ? TopicEndpointRole::Subscriber
+              : TopicEndpointRole::Publisher)
    , _callback(std::move(callback))
 {
    if (_reader < 0)
    {
-      GPERROR("BuiltinTopicReader: failed to create DCPSPublication reader ({})", _reader);
+      GPERROR("BuiltinTopicReader: failed to create built-in reader ({})", _reader);
       _running = false;
       return;
    }
@@ -93,8 +179,11 @@ void BuiltinTopicReader::pollLoop()
          dt.reliability = reliabilityStr(ep->qos);
          dt.durability  = durabilityStr(ep->qos);
          dt.historyDepth = historyDepthOf(ep->qos);
+         dt.endpointId = guidToString(ep->key);
+         dt.participantId = guidToString(ep->participant_key);
+         dt.endpointName = endpointNameFromQos(ep->qos);
 
-         _callback(dt, appeared, infos[index].instance_handle);
+         _callback(dt, appeared, _role, infos[index].instance_handle);
       }
 
       if (n > 0)

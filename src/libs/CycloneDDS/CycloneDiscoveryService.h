@@ -10,7 +10,6 @@
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -39,17 +38,33 @@ public:
    void setTopicsChangedCallback(DdsCore::TopicsChangedCallback callback) override;
 
 private:
+   struct EndpointSnapshot
+   {
+      DdsCore::DiscoveredTopic topic;
+   };
+
+   struct TopicState
+   {
+      std::map<dds_instance_handle_t, EndpointSnapshot> publishers;
+      std::map<dds_instance_handle_t, EndpointSnapshot> subscribers;
+   };
+
+   static int durabilityRank(const std::string &durability);
+   static std::optional<std::string> mismatchReason(const DdsCore::DiscoveredTopic &publisher,
+                                                    const DdsCore::DiscoveredTopic &subscriber);
+
    void onDiscovery(const DdsCore::DiscoveredTopic &dt, bool appeared,
-                    dds_instance_handle_t publisherHandle);
+                    TopicEndpointRole role, dds_instance_handle_t endpointHandle);
+   [[nodiscard]] DdsCore::DiscoveredTopic summarizeTopic(const std::string &topic) const;
 
    mutable std::mutex _mutex;
-   std::map<std::string, DdsCore::DiscoveredTopic> _discoveredTopics;
-   std::map<std::string, std::set<dds_instance_handle_t>> _topicPublishers;
+   std::map<std::string, TopicState> _topics;
    DdsCore::TopicsChangedCallback _topicsChangedCb;
 
    // Constructed last (after the members above are ready) since its
    // constructor immediately starts a thread that calls onDiscovery().
-   std::unique_ptr<BuiltinTopicReader> _builtinReader;
+   std::unique_ptr<BuiltinTopicReader> _publisherReader;
+   std::unique_ptr<BuiltinTopicReader> _subscriberReader;
 };
 
 } // namespace CycloneDDS

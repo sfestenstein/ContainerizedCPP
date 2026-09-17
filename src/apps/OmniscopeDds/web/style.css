@@ -146,7 +146,7 @@ header h1 {
 .panels {
    flex: 1;
    display: grid;
-   grid-template-columns: 240px minmax(420px, 1fr) minmax(420px, 1.1fr);
+   grid-template-columns: 240px minmax(340px, 0.82fr) minmax(420px, 1.1fr);
    gap: 10px;
    padding: 10px;
    overflow: auto;
@@ -179,8 +179,165 @@ header h1 {
    min-width: 180px;
 }
 
+.topics-body {
+   display: flex;
+   flex-direction: column;
+   gap: 10px;
+}
+
+.detail-layout {
+   display: flex;
+   flex-direction: column;
+   gap: 10px;
+   padding: 10px;
+   overflow: hidden;
+}
+
+.detail-card {
+   border: 1px solid rgba(126, 157, 216, 0.28);
+   border-radius: 14px;
+   background: linear-gradient(180deg, rgba(18, 41, 77, 0.92), rgba(10, 27, 56, 0.9));
+   overflow: hidden;
+   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.detail-info {
+   flex: 1 1 50%;
+   min-height: 0;
+   overflow: auto;
+}
+
+.detail-topology {
+   flex: 1 1 50%;
+   min-height: 220px;
+   display: flex;
+   flex-direction: column;
+   overflow: hidden;
+}
+
+.topology-card {
+   margin: 10px 10px 0;
+   border: 1px solid rgba(126, 157, 216, 0.28);
+   border-radius: 14px;
+   background: linear-gradient(180deg, rgba(18, 41, 77, 0.92), rgba(10, 27, 56, 0.9));
+   overflow: hidden;
+   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.topology-card-header {
+   display: flex;
+   justify-content: space-between;
+   gap: 8px;
+   align-items: baseline;
+   padding: 8px 10px;
+   border-bottom: 1px solid rgba(126, 157, 216, 0.18);
+   font-size: 10px;
+   text-transform: uppercase;
+   letter-spacing: 0.09em;
+   color: var(--muted);
+}
+
+.topology-card-sub {
+   color: rgba(166, 185, 223, 0.72);
+}
+
+.topology-graph {
+   min-height: 210px;
+   flex: 1;
+   overflow: auto;
+   background: rgba(8, 18, 36, 0.6);
+}
+
+.topology-empty {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   min-height: 210px;
+   color: var(--muted);
+   font-size: 12px;
+   padding: 16px;
+   text-align: center;
+}
+
+.topology-svg {
+   width: auto;
+   height: auto;
+   display: block;
+}
+
+.topology-node-text {
+   font-family: 'Space Grotesk', sans-serif;
+   font-size: 11px;
+   font-weight: 700;
+   fill: var(--text);
+}
+
+.topology-node-subtext {
+   font-family: 'IBM Plex Mono', monospace;
+   font-size: 9px;
+   fill: var(--muted);
+}
+
+.topology-line {
+   stroke: rgba(137, 171, 232, 0.32);
+   stroke-width: 1.5;
+}
+
+.topology-line.mismatch {
+   stroke: rgba(255, 111, 134, 0.68);
+}
+
+.topology-node.topic rect {
+   fill: rgba(21, 45, 84, 0.96);
+   stroke: rgba(126, 157, 216, 0.4);
+   stroke-width: 1.2;
+}
+
+.topology-node.topic.mismatch rect {
+   fill: rgba(81, 26, 40, 0.98);
+   stroke: rgba(255, 142, 157, 0.82);
+}
+
+.topology-node.topic.selected rect {
+   stroke: rgba(132, 203, 255, 0.96);
+   stroke-width: 2;
+}
+
+.topology-node.root rect {
+   fill: #6ea9ff;
+   stroke: rgba(190, 223, 255, 0.86);
+   stroke-width: 1.2;
+}
+
+.topology-node.endpoint rect {
+   fill: rgba(17, 38, 72, 0.95);
+   stroke: rgba(126, 157, 216, 0.3);
+   stroke-width: 1;
+}
+
+.topology-node.endpoint.subscriber rect {
+   fill: rgba(20, 52, 83, 0.96);
+}
+
+.topology-node.endpoint.publisher rect {
+   fill: rgba(23, 60, 96, 0.96);
+}
+
+.topology-node-label {
+   font-family: 'Space Grotesk', sans-serif;
+   font-size: 10px;
+   font-weight: 700;
+   fill: var(--text);
+}
+
+.topology-node-count {
+   font-family: 'IBM Plex Mono', monospace;
+   font-size: 9px;
+   fill: var(--muted);
+}
+
 #messagesPanel {
-   min-width: 260px;
+   min-width: 220px;
 }
 
 #detailPanel {
@@ -255,14 +412,37 @@ header h1 {
    transition: background 0.2s ease, padding-left 0.15s ease;
 }
 
+.topic-item.qos-mismatch {
+   background: rgba(86, 24, 41, 0.42);
+}
+
 .topic-item:hover {
    background: var(--surface-soft);
    padding-left: 18px;
 }
 
+.topic-item.selected {
+   background: rgba(98, 148, 255, 0.26);
+   box-shadow: inset 3px 0 0 var(--accent);
+}
+
 .topic-name {
    font-weight: 500;
    font-size: 13px;
+}
+
+.topic-name.qos-mismatch {
+   color: var(--red);
+   font-weight: 700;
+}
+
+.topic-counts {
+   font-family: 'IBM Plex Mono', monospace;
+   font-size: 10px;
+   color: var(--muted);
+   margin-left: auto;
+   margin-right: 8px;
+   white-space: nowrap;
 }
 
 .topic-badge {
@@ -273,6 +453,16 @@ header h1 {
    background: rgba(83, 111, 167, 0.42);
    color: var(--muted);
    border: 1px solid rgba(126, 157, 216, 0.35);
+   cursor: pointer;
+   transition: transform 0.12s ease, filter 0.14s ease, background 0.18s ease;
+}
+
+.topic-badge:hover {
+   filter: brightness(1.08);
+}
+
+.topic-badge:active {
+   transform: translateY(1px);
 }
 
 .topic-badge.subscribed {
@@ -281,14 +471,20 @@ header h1 {
    border-color: rgba(190, 223, 255, 0.86);
 }
 
+.topic-badge.qos-mismatch {
+   background: linear-gradient(140deg, rgba(255, 142, 157, 0.92), rgba(214, 76, 101, 0.92));
+   color: #3a0712;
+   border-color: rgba(255, 176, 188, 0.9);
+}
+
 .msg-item {
    padding: 8px 12px;
    cursor: pointer;
    border-bottom: 1px solid rgba(126, 157, 216, 0.24);
-   display: grid;
-   grid-template-columns: minmax(110px, 160px) 86px 1fr;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
    gap: 10px;
-   align-items: baseline;
    transition: background 0.17s ease;
 }
 
@@ -316,14 +512,6 @@ header h1 {
    font-family: 'IBM Plex Mono', monospace;
 }
 
-.msg-preview {
-   color: #cad9f6;
-   font-size: 12px;
-   overflow: hidden;
-   text-overflow: ellipsis;
-   white-space: nowrap;
-}
-
 #detailContent {
    padding: 14px;
    white-space: pre-wrap;
@@ -331,6 +519,7 @@ header h1 {
    font-size: 12px;
    line-height: 1.65;
    font-family: 'IBM Plex Mono', 'Consolas', monospace;
+   min-height: 100%;
 }
 
 .field-key {

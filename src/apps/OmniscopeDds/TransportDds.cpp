@@ -67,6 +67,12 @@ std::vector<std::string> TransportDds::topicNames() const
    return _impl->discovery->topicNames();
 }
 
+std::optional<DdsCore::DiscoveredTopic>
+TransportDds::lookup(const std::string &topic) const
+{
+   return _impl->discovery->lookup(topic);
+}
+
 void TransportDds::setTopicsChangedCallback(TopicsChangedCallback callback)
 {
    _impl->discovery->setTopicsChangedCallback(std::move(callback));

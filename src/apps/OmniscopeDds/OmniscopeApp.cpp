@@ -145,10 +145,60 @@ struct OmniscopeApp::Impl
       {
          for (const auto &tn : t->topicNames())
          {
+            auto dt = t->lookup(tn);
             crow::json::wvalue entry;
             entry["name"]       = tn;
             entry["subscribed"] = t->isSubscribed(tn);
             entry["transport"]  = t->name();
+            if (dt)
+            {
+               entry["publisher_count"] = dt->publisherCount;
+               entry["subscriber_count"] = dt->subscriberCount;
+               entry["qos_mismatch"] = dt->qosMismatch;
+               entry["qos_mismatch_reason"] = dt->qosMismatchReason;
+
+               std::vector<crow::json::wvalue> publisherApps;
+               publisherApps.reserve(dt->publisherApplications.size());
+               for (const auto &app : dt->publisherApplications)
+                  publisherApps.emplace_back(app);
+               entry["publisher_apps"] = std::move(publisherApps);
+
+               std::vector<crow::json::wvalue> subscriberApps;
+               subscriberApps.reserve(dt->subscriberApplications.size());
+               for (const auto &app : dt->subscriberApplications)
+                  subscriberApps.emplace_back(app);
+               entry["subscriber_apps"] = std::move(subscriberApps);
+
+               std::vector<crow::json::wvalue> publisherProfiles;
+               publisherProfiles.reserve(dt->publisherQosProfiles.size());
+               for (const auto &profile : dt->publisherQosProfiles)
+               {
+                  crow::json::wvalue profileEntry;
+                  profileEntry["profile"] = profile.profile;
+                  std::vector<crow::json::wvalue> apps;
+                  apps.reserve(profile.applications.size());
+                  for (const auto &app : profile.applications)
+                     apps.emplace_back(app);
+                  profileEntry["applications"] = std::move(apps);
+                  publisherProfiles.push_back(std::move(profileEntry));
+               }
+               entry["publisher_qos_profiles"] = std::move(publisherProfiles);
+
+               std::vector<crow::json::wvalue> subscriberProfiles;
+               subscriberProfiles.reserve(dt->subscriberQosProfiles.size());
+               for (const auto &profile : dt->subscriberQosProfiles)
+               {
+                  crow::json::wvalue profileEntry;
+                  profileEntry["profile"] = profile.profile;
+                  std::vector<crow::json::wvalue> apps;
+                  apps.reserve(profile.applications.size());
+                  for (const auto &app : profile.applications)
+                     apps.emplace_back(app);
+                  profileEntry["applications"] = std::move(apps);
+                  subscriberProfiles.push_back(std::move(profileEntry));
+               }
+               entry["subscriber_qos_profiles"] = std::move(subscriberProfiles);
+            }
             topicArr.push_back(std::move(entry));
          }
       }

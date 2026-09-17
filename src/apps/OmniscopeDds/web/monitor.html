@@ -30,7 +30,9 @@
    <!-- Topics pane -->
    <div class="panel" id="topicsPanel">
       <div class="panel-header">Topics</div>
-      <div class="panel-body" id="topicsList"></div>
+      <div class="panel-body topics-body">
+         <div id="topicsList"></div>
+      </div>
    </div>
 
    <!-- Messages pane -->
@@ -42,8 +44,17 @@
    <!-- Detail pane -->
    <div class="panel" id="detailPanel">
       <div class="panel-header">Detail</div>
-      <div class="panel-body">
-         <div id="detailContent">Select a message to view its contents.</div>
+      <div class="panel-body detail-layout">
+         <div class="detail-card detail-info">
+            <div id="detailContent">Select a message to view its contents.</div>
+         </div>
+         <div class="detail-card detail-topology">
+            <div class="topology-card-header">
+               <span>Live Topology</span>
+               <span class="topology-card-sub">Topic-centric DDS graph</span>
+            </div>
+            <div id="topologyGraph" class="topology-graph"></div>
+         </div>
       </div>
    </div>
 </div>

@@ -30,6 +30,7 @@
 #include <cstdint>
 #include <random>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -74,6 +75,21 @@ struct SimulatedTrack
    int32_t sequenceNumber = 0;
 };
 
+CycloneDDS::TopicEntry withEndpointMetadata(CycloneDDS::TopicEntry entry,
+                                            std::string_view appName,
+                                            std::string_view endpointName,
+                                            std::string_view endpointRole)
+{
+   const std::string metadata = "app_name=" + std::string(appName)
+                              + ";endpoint_name=" + std::string(endpointName)
+                              + ";endpoint_role=" + std::string(endpointRole);
+   dds::core::ByteSeq userData(metadata.begin(), metadata.end());
+   const auto qos = dds::core::policy::UserData(userData);
+   entry.writerQos << qos;
+   entry.readerQos << qos;
+   return entry;
+}
+
 } // namespace
 
 // NOLINTNEXTLINE
@@ -109,7 +125,11 @@ int main(int argc, char *argv[])
    // ack path in the Command listener callback never triggers lazy
    // Topic/DataWriter creation from within that callback.
    CycloneDDS::DDSPublisher<CommandStatus> commandStatusPub(
-      domainId, config.getEntry(std::string(RadarDemo::COMMAND_STATUS_TOPIC)), "RadarCommandStatusPub");
+      domainId,
+      withEndpointMetadata(
+         config.getEntry(std::string(RadarDemo::COMMAND_STATUS_TOPIC)),
+         "RadarDDSRadar", "RadarCommandStatusPub", "publisher"),
+      "RadarCommandStatusPub");
    {
       CommandStatus startup;
       startup.header().sender_id("Radar");
@@ -122,14 +142,30 @@ int main(int argc, char *argv[])
    }
 
    CycloneDDS::DDSPublisher<RadarTrack> trackPub(
-      domainId, config.getEntry(std::string(RadarDemo::RADAR_TRACK_TOPIC)), "RadarTrackPub");
+      domainId,
+      withEndpointMetadata(
+         config.getEntry(std::string(RadarDemo::RADAR_TRACK_TOPIC)),
+         "RadarDDSRadar", "RadarTrackPub", "publisher"),
+      "RadarTrackPub");
    CycloneDDS::DDSPublisher<ComponentStatus> componentPub(
-      domainId, config.getEntry(std::string(RadarDemo::COMPONENT_STATUS_TOPIC)), "RadarComponentStatusPub");
+      domainId,
+      withEndpointMetadata(
+         config.getEntry(std::string(RadarDemo::COMPONENT_STATUS_TOPIC)),
+         "RadarDDSRadar", "RadarComponentStatusPub", "publisher"),
+      "RadarComponentStatusPub");
    CycloneDDS::DDSPublisher<RadarAlert> alertPub(
-      domainId, config.getEntry(std::string(RadarDemo::RADAR_ALERT_TOPIC)), "RadarAlertPub");
+      domainId,
+      withEndpointMetadata(
+         config.getEntry(std::string(RadarDemo::RADAR_ALERT_TOPIC)),
+         "RadarDDSRadar", "RadarAlertPub", "publisher"),
+      "RadarAlertPub");
 
    CycloneDDS::DDSSubscriber<Command> commandSub(
-      domainId, config.getEntry(std::string(RadarDemo::COMMAND_TOPIC)), "RadarCommandSub");
+      domainId,
+      withEndpointMetadata(
+         config.getEntry(std::string(RadarDemo::COMMAND_TOPIC)),
+         "RadarDDSRadar", "RadarCommandSub", "subscriber"),
+      "RadarCommandSub");
    commandSub.subscribe(
       [&commandStatusPub](const Command &cmd)
       {

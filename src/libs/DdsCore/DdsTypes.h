@@ -9,6 +9,12 @@
 namespace DdsCore
 {
 
+struct QosProfileUsage
+{
+   std::string profile;
+   std::vector<std::string> applications;
+};
+
 /// Information about a topic discovered on the DDS network. Vendor-neutral:
 /// reliability/durability are free-form strings ("reliable" | "best_effort",
 /// "volatile" | "transient_local" | "transient" | "persistent") rather than
@@ -20,6 +26,17 @@ struct DiscoveredTopic
    std::string reliability;
    std::string durability;
    int32_t     historyDepth; // -1 = KEEP_ALL
+   std::string endpointId;
+   std::string participantId;
+   std::string endpointName;
+   int32_t     publisherCount = 0;
+   int32_t     subscriberCount = 0;
+   std::vector<std::string> publisherApplications;
+   std::vector<std::string> subscriberApplications;
+   std::vector<QosProfileUsage> publisherQosProfiles;
+   std::vector<QosProfileUsage> subscriberQosProfiles;
+   bool        qosMismatch = false;
+   std::string qosMismatchReason;
 };
 
 /// A single sample's raw wire bytes plus enough metadata to reconstruct a

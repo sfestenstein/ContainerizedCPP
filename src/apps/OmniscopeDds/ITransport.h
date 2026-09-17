@@ -1,7 +1,10 @@
 #ifndef ITRANSPORT_H_
 #define ITRANSPORT_H_
 
+#include "DdsCore/DdsTypes.h"
+
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -32,6 +35,10 @@ public:
 
    /// List of topic names this transport can handle.
    [[nodiscard]] virtual std::vector<std::string> topicNames() const = 0;
+
+   /// Look up discovery metadata for a topic, if the transport knows it.
+   [[nodiscard]] virtual std::optional<DdsCore::DiscoveredTopic>
+   lookup(const std::string &topic) const = 0;
 
    /// Begin receiving messages on the given topic.
    virtual void subscribe(const std::string &topic, MessageCallback callback) = 0;

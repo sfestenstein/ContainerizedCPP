@@ -13,6 +13,12 @@
 namespace CycloneDDS
 {
 
+enum class TopicEndpointRole
+{
+   Publisher,
+   Subscriber,
+};
+
 /// Information about a topic discovered on the DDS network.
 using DiscoveredTopic = DdsCore::DiscoveredTopic;
 
@@ -22,7 +28,9 @@ using DiscoveredTopic = DdsCore::DiscoveredTopic;
 using TopicDiscoveryCallback =
    std::function<void(const DiscoveredTopic & /*topic*/,
                       bool /*appeared*/,
-                      dds_instance_handle_t /*publisherHandle*/)>;
+                      TopicEndpointRole /*role*/,
+                      dds_instance_handle_t /*endpointHandle*/)>
+   ;
 
 /**
  * @brief Watches the DCPSPublication built-in topic to discover all active
@@ -36,8 +44,10 @@ class BuiltinTopicReader
 public:
    /// @param participant  Existing C-API participant entity to attach the
    ///                     built-in reader to.
+   /// @param builtinTopic  Built-in topic entity to read.
    /// @param callback     Called on the polling thread; must be thread-safe.
-   BuiltinTopicReader(dds_entity_t participant, TopicDiscoveryCallback callback);
+   BuiltinTopicReader(dds_entity_t participant, dds_entity_t builtinTopic,
+                      TopicDiscoveryCallback callback);
    ~BuiltinTopicReader();
 
    BuiltinTopicReader(const BuiltinTopicReader &) = delete;
@@ -47,6 +57,7 @@ private:
    void pollLoop();
 
    dds_entity_t           _reader;
+   TopicEndpointRole      _role;
    TopicDiscoveryCallback _callback;
    std::atomic<bool>      _running{true};
    std::thread            _thread;

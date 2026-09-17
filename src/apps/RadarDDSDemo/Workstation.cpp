@@ -25,6 +25,7 @@
 #include <chrono>
 #include <csignal>
 #include <cstdint>
+#include <string_view>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -68,6 +69,26 @@ static void printBanner()
    GPINFO("  RadarAlert           : Reliable,    TransientLocal, KeepAll(<=50/instance)");
 }
 
+namespace
+{
+
+CycloneDDS::TopicEntry withEndpointMetadata(CycloneDDS::TopicEntry entry,
+                                            std::string_view appName,
+                                            std::string_view endpointName,
+                                            std::string_view endpointRole)
+{
+   const std::string metadata = "app_name=" + std::string(appName)
+                              + ";endpoint_name=" + std::string(endpointName)
+                              + ";endpoint_role=" + std::string(endpointRole);
+   dds::core::ByteSeq userData(metadata.begin(), metadata.end());
+   const auto qos = dds::core::policy::UserData(userData);
+   entry.writerQos << qos;
+   entry.readerQos << qos;
+   return entry;
+}
+
+} // namespace
+
 // NOLINTNEXTLINE
 int main(int argc, char *argv[])
 {
@@ -89,7 +110,11 @@ int main(int argc, char *argv[])
    const auto &config = topics.config();
 
    CycloneDDS::DDSPublisher<Command> commandPub(
-      domainId, config.getEntry(std::string(RadarDemo::COMMAND_TOPIC)), "WorkstationCommandPub");
+      domainId,
+      withEndpointMetadata(
+         config.getEntry(std::string(RadarDemo::COMMAND_TOPIC)),
+         "RadarDDSWorkstation", "WorkstationCommandPub", "publisher"),
+      "WorkstationCommandPub");
 
    // RadarTrack drop tracking — touched only from this subscriber's own
    // polling thread, so no synchronization is needed.
@@ -101,7 +126,11 @@ int main(int argc, char *argv[])
    std::atomic<bool> firstAlertSeen{false};
 
    CycloneDDS::DDSSubscriber<CommandStatus> commandStatusSub(
-      domainId, config.getEntry(std::string(RadarDemo::COMMAND_STATUS_TOPIC)), "WorkstationCommandStatusSub");
+      domainId,
+      withEndpointMetadata(
+         config.getEntry(std::string(RadarDemo::COMMAND_STATUS_TOPIC)),
+         "RadarDDSWorkstation", "WorkstationCommandStatusSub", "subscriber"),
+      "WorkstationCommandStatusSub");
    commandStatusSub.subscribe(
       [](const CommandStatus &msg)
       {
@@ -111,7 +140,11 @@ int main(int argc, char *argv[])
    commandStatusSub.start();
 
    CycloneDDS::DDSSubscriber<RadarTrack> trackSub(
-      domainId, config.getEntry(std::string(RadarDemo::RADAR_TRACK_TOPIC)), "WorkstationTrackSub");
+      domainId,
+      withEndpointMetadata(
+         config.getEntry(std::string(RadarDemo::RADAR_TRACK_TOPIC)),
+         "RadarDDSWorkstation", "WorkstationTrackSub", "subscriber"),
+      "WorkstationTrackSub");
    trackSub.subscribe(
       [&](const RadarTrack &msg)
       {
@@ -130,7 +163,11 @@ int main(int argc, char *argv[])
    trackSub.start();
 
    CycloneDDS::DDSSubscriber<ComponentStatus> componentSub(
-      domainId, config.getEntry(std::string(RadarDemo::COMPONENT_STATUS_TOPIC)), "WorkstationComponentSub");
+      domainId,
+      withEndpointMetadata(
+         config.getEntry(std::string(RadarDemo::COMPONENT_STATUS_TOPIC)),
+         "RadarDDSWorkstation", "WorkstationComponentSub", "subscriber"),
+      "WorkstationComponentSub");
    componentSub.subscribe(
       [&](const ComponentStatus &msg)
       {
@@ -143,7 +180,11 @@ int main(int argc, char *argv[])
    componentSub.start();
 
    CycloneDDS::DDSSubscriber<RadarAlert> alertSub(
-      domainId, config.getEntry(std::string(RadarDemo::RADAR_ALERT_TOPIC)), "WorkstationAlertSub");
+      domainId,
+      withEndpointMetadata(
+         config.getEntry(std::string(RadarDemo::RADAR_ALERT_TOPIC)),
+         "RadarDDSWorkstation", "WorkstationAlertSub", "subscriber"),
+      "WorkstationAlertSub");
    alertSub.subscribe(
       [&](const RadarAlert &msg)
       {

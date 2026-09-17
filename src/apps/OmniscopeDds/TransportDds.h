@@ -35,6 +35,8 @@ public:
 
    [[nodiscard]] std::string              name() const override;
    [[nodiscard]] std::vector<std::string> topicNames() const override;
+   [[nodiscard]] std::optional<DdsCore::DiscoveredTopic>
+   lookup(const std::string &topic) const override;
 
    void setTopicsChangedCallback(TopicsChangedCallback callback) override;
 
